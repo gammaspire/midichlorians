@@ -1,0 +1,20 @@
+Your galaxy might not occupy the entirety of the cutout; rather, it may be placed centrally with about 50+ bumper pixels of background space around the perimeter. What if you don't want to sonify these non-galaxy pixels? Or what if there is a particularly nifty foreground star or non-central galaxy in this bumper space that you'd like to try sonifying instead? 
+\n
+Well, now you can! 
+\n
+Once you have successfully loaded your galaxy FITS image onto the canvas, you can left-click in two different spots on the image in order to create a rectangle. The idea is that each click will represent the location of one of the two opposing vertices. When you have clicked twice, assuming the x- and y- values are different, lines will automatically form to create a rectangle. If you click a third time, the rectangle will disappear and this location will mark the new first vertex of your next rectangle. I recommend experimenting a bit until you are familiar with the mechanics of such complex 2D geometry. 
+\n
+If you have found a rectangle enclosing the desired object to sonify, you can proceed in a few ways: \n
+1. Use the "Change Rectangle Angle widget" to rotate the rectangle in a way that might better accommodate the position angle (and perhaps the axis ratio) of your object. 
+\n
+2. Tweak some of the parameters (in the aptly-labeled "Parameters" widget) to your liking.
+\n
+Then, if you are all set, navigate to the "Parameters" widget and click "Sonify." If all python libraries are correctly installed with the correct versions, you should automatically begin to hear the .wav file begin to play. The default direction of the pixel strips is from left to right, so the notes played will also go from the left of the galaxy to the right. 
+\n
+Suppose you'd like to listen to a single note corresponding to a single line of pixels within this rectangle. If you check the box located below the galaxy display and then left-click within the rectangle you drew on the canvas, you will plot a single line and hear its corresponding MIDI note. Note that you MUST have clicked the "Sonify" button first in order to both create and listen to the lines.
+\n
+If you would like to change a certain parameter but not the rectangle, you need only to insert the desired parameter value in the companion textbox and click "Sonify" again. 
+\n
+If you would like to change the rectangle but only seem to be able to create lines, that would be because you must uncheck the "Switch to lines" checkbox. The left-click setting within the canvas will then revert to the rectangle fun with which you started.
+\n
+If you have encountered a problem where certain red marks or lines on the canvas are not disappearing, you can click the "Enter/Refresh" button located in the "File Browser" widget to re-load the FITS image. 

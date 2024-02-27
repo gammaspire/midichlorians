@@ -1,0 +1,10 @@
+If sonification is to be done, the user must upload a FITS file. 
+\n
+The "File Browser" widget is located at the top right of the GUI. You can either type the path to the galaxy FITS image, or you can click the "Browse" button. Doing so will open a browsing window, where you can select your desired FITS image and click "Open." The window should then close and the full path to your image will display in the widget's textbox. 
+\n
+When you are set with this step, click "Enter/Refresh" to the right of the "Browse" button. This has two functions, the first being that the main display canvas will draw your FITS image. The second is more of a failsafe -- if any glitches transpire while utilizing the rectangle or line drawing tools, then you may click this button in order to clear the canvas of your scribbles. 
+\n
+If the display's colormap and/or stretch is not to your liking, there is no need to fret! You might use the vmin, vmax sliders and colormap dropdown menu options in the widget located around the center of the GUI. Upon selecting any item or sliding the scale any which way, the canvas will automatically update.
+\n
+NOTE: One built-in feature for the stretch to display nicely is through the use of the object mask (which will cause the program to ignore regions with prominent foreground stars and other undesireable artifacts). If you have an object mask you would like to incorporate, (1) be sure that the .FITS file is in the same directory as your image and (2) have both the galaxyname, the wavelength band, and the word "mask" in the filename, separated by -. An example would be [UGC11132-wise-mask.fits], without the brackets. *Current support is only for wise (which applies to W1, W2, W3, W4) and grz (type 'g', 'r', or 'z' in place of 'wise') bands!*
+

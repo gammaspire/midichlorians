@@ -1,0 +1,9 @@
+If you have not yet converted galaxy data to sound by clicking the "Sonify" widget, please refer to rectline.txt and sonifeat.txt for instructions. Otherwise, the following ought to be relatively uninvolved... 
+\n 
+In fact, you need only press a button! 
+\n
+What that button does, though, requires a brief discussion. Once you click the "Save as WAV" widget, located around the center of the GUI, your *most recent* sonification midi file will be converted to a wave file. This process incorporates your soundfont (e.g., I use pkmngba.sf2), so the output may not sound identical to the MIDI notes played upon clicking "Sonify" in terms of instrument choice. 
+\n
+This .wav file, along with the companion .mid file, will appear in the "saved_wavfiles" directory which is part of the git pull package. The filename is a bit tricky. The current naming convention I use for FITS files is such that the galaxy name appears first, followed by a -, followed by the wavelength band, followed by a -, followed by some additional information. The code will parse the filename with the - as a delimiter, so I assign the first two elements, the galaxy name and band, to be part of the saved .wav name. DEPENDING ON WHAT YOUR FILENAMING CONVENTION IS, YOU MIGHT ENCOUNTER AN ERROR HERE. 
+\n
+I am in the process of generalizing the source code, so in principle this problem-o should be fixed-o in time.

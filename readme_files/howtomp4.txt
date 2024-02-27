@@ -1,0 +1,3 @@
+Same as .wav file; output will be a sliding rectangular bar tracing, from left to right, the midi note values. This tracing should be calibrated with the sound of the note playing. Both an .mp4 and a concat.mp4 file will appear in the relevant folder (which is set up by default to be in the same directory as the collection of heehaw that you git pulled from my repository). The concat.mp4 file contains the version with audio.
+
+I have elected to include both the with- and without- audio files in case the user wishes to concatenate them on their own, perhaps with the intention of better aligning audio and video.

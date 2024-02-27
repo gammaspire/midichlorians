@@ -1,0 +1,19 @@
+There are an array of options that will manipulate your sonification file, primarily for aesthetics but also to potentially magnify on subtleties in your galaxy's structure (this rule more applies to those who are not using w1 or w3 postage stamps, as said such structures are sparse for all but the most luminous galactic behemoths of the cosmos -- that is, galaxies at these longer wavelengths more often resemble pudgy little fuzzballs like a limbless Chewbacca). 
+
+In the "Parameters" widget, you will find the following:
+\n
+1. Note Inversion --> Do you prefer the lowest notes to correspond to the highest pixel values, and vise versa? If so, then check this box to change the default high-to-high and low-to-low scheme. 
+\n
+2. yscale --> A parameter which scales the midi notes; appears to affect how quickly or slowly note changes occur. For instance, if 10 is C, will 14 be D or E? Or F?! Or just C?
+\n
+3. Min, Max Velocity --> The minimum and maximum volume, respectively, of notes. The lowest minimum is 0 (no sound), and the highest maximum is 127 (loud, powerful, punctuating).
+\n
+4. BPM --> Beats per minute; affects the tempo of sound, or the amount of time between two successive notes.
+\n
+5. xmin, xmax --> This textbox will just display the range of x-values which the program is sonifying. If you draw a rectangle from x=10 to x=40, then those min and max x-values will show in this here box. Trying to type new inputs will o na-da.
+\n
+6. Key Signature --> Sort of self-explanatory. For the unaffiliated (e.g., me), signatures effectively dictate what notes are played. Some might include F, others F#, etc. 
+\n
+7. Instrument --> Each integer, 0-127, represents an instrument! The current soundfont I have pre-loaded is from the line of Pokemon Gameboy Advance titles, but you (the user) are welcome to apply any soundfont desired. Just be sure to specify the filename and path in the params.txt file.
+\n
+8. Duration --> The duration, in seconds, that a note is played. If BPM is relatively high, then this will cause the notes to overlap, resulting in either cacophony or a marginally more amusing sound. I recommend shortening the duration if the notes merge together and become utterly unrecognizable as individual entities. Independence is a rare commodity in these times, and your music will thank you for the gesture of mercy.
