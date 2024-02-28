@@ -1,5 +1,5 @@
 # MIDIchlorians
-[MIDI]-Sonifi[C]ation of [H]ost [LO]cal Galaxies [R]epresenting V[I]rgo and [N]earby Population[S] \
+[MIDI]-[C]onversio to [H]armonic [L]ullabies of [O]ur Nea[R]by [I]rradiant G[A]laxy [N]eighbor[S] <br>
 (If I don't create a wonky, near-nonsensical acronym for a title, am I even associated with astronomy?)
 
 This project set out to faciliate the conversion of FITS image data into sound and has culminated in a user-friendly GUI, developed in python. 
