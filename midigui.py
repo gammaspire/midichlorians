@@ -497,7 +497,7 @@ class MainPage(tk.Frame):
         
         self.dat = fits.getdata(str(self.path_to_im.get()))
         
-        #many cutouts, especially those in the r-band, have pesky foreground stars and other artifacts, which will invariably dominate the display of the image stretch. one option is that I can grab the corresponding mask image for the galaxy and create a 'mask bool' of 0s and 1s, then multiply this by the image in order to dictate v1, v2, and the normalization *strictly* on the central galaxy pixel values. 
+        #many cutouts, especially those in the r-band, have pesky foreground stars and other artifacts, which will invariably dominate the display of the image stretch. one option is that I can grab the corresponding .wav image for the galaxy and create a 'mask bool' of 0s and 1s, then multiply this by the image in order to dictate v1, v2, and the normalization *strictly* on the central galaxy pixel values. 
         
         try:
             full_filepath = str(self.path_to_im.get()).split('/')
@@ -508,7 +508,7 @@ class MainPage(tk.Frame):
         except:
             print('Selected filename is not split with "-" characters with galaxyband; defaulting to generic wavelength.')
             galaxyname = split_filename[0]   #should still be the full filename
-            galaxyband = ' '
+            galaxyband = 'noband'
         
         try:
             if (galaxyband=='g') | (galaxyband=='r') | (galaxyband=='z'):
