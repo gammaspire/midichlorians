@@ -4,8 +4,9 @@
 
 This project set out to faciliate the conversion of FITS image data into sound and has culminated in a user-friendly GUI, developed in python. 
 
-Access the YouTube tutorial here **(in progress)** or this repository's Wiki **(in progress)** for specific setup instructions and details on the various interface features!
+Please visit this repository's wiki at https://github.com/Kyssuber/midichlorians/wiki/Getting-Started for specific setup instructions and details on the various interface features!
 
-See the requirements.txt file to reference the required packages & versions in order to successfully run the main script.
+See the requirements.txt file to review the required packages & versions in order to successfully run the main script.
 
-**UNDER CONSTRUCTION! PLEASE RETURN PERIODICALLY TO CHECK FOR UPDATES.**
+Once all setup configurations are set, navigate to your terminal window and type the following to begin your sonification journey: <br>
+`python midigui.py -params params.txt`
