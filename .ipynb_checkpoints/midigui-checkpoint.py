@@ -17,10 +17,6 @@ import os
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.animation as animation
 
-#from matplotlib import pyplot as plt      #don't use with canvas, since closing GUI doesn't close pyplot!
-                                           #the workaround does add a bit more clunkiness to the code...
-                                           #I did not create the rules. do not sue me.
-
 from matplotlib import figure              #see self.fig, self.ax.
 
 import matplotlib                          #I need this for matplotlib.use. sowwee.
@@ -30,13 +26,11 @@ from scipy.stats import scoreatpercentile
 from scipy import spatial
 from astropy.visualization import simple_norm
 from astropy.io import fits
-from astropy.wcs import WCS
 from tkinter import font as tkFont
 from tkinter import messagebox
 from tkinter import filedialog
 import glob
 
-import sys
 from io import BytesIO
 from mido import MidiFile
 
@@ -172,7 +166,7 @@ class MainPage(tk.Frame):
         
         #NOTE: columnconfigure and rowconfigure below enable the minimization and maximization of window to also affect widget size
         
-        #create frame for save widgets...y'know, to generate the .wav and HOPEFULLY the .mp4 (pending as of January 23, 2024. if the save .mp4 widget appears on the GUI, then my efforts bore fruits and I simply forgot to delete this comment)
+        #create frame for save widgets...y'know, to generate the .wav and .mp4 
         self.frame_save=tk.LabelFrame(self,text='Save Files',padx=5,pady=5)
         self.frame_save.grid(row=4,column=1,columnspan=5)
         for i in range(self.rowspan):
@@ -407,7 +401,7 @@ class MainPage(tk.Frame):
         self.button_explore.grid(row=1,column=0)
         
     def add_enter_button(self):
-        self.path_button = tk.Button(self.frame_buttons, text='Enter/Refresh', padx=20, pady=10, font=self.helv20,command=self.initiate_canvas)
+        self.path_button = tk.Button(self.frame_buttons, text='Enter/Refresh Canvas', padx=20, pady=10, font=self.helv20,command=self.initiate_canvas)
         self.path_button.grid(row=1,column=1)
     
     def add_midi_button(self):
@@ -467,7 +461,11 @@ class MainPage(tk.Frame):
             
             wav_savename = self.path_to_repos+'saved_wavfiles/'+str(self.galaxy_name)+'-'+str(self.band)+'.wav'   
             
-            fs = FluidSynth(sound_font=self.soundfont, gain=3)   #gain governs the volume of wavefile. I needed to tweak the source code of midi2audio in order to have the gain argument --> I'll give instructions somewhere for how to do so...try the github wiki. :-)
+            #initiate FluidSynth class!
+            #gain governs the volume of wavefile. I needed to tweak the source code of midi2audio to 
+            #have the gain argument --> I'll give instructions somewhere for how to do so...
+            #check my github wiki. :-)
+            fs = FluidSynth(sound_font=self.soundfont, gain=3)   
             
             if os.path.isfile(wav_savename):    
                 self.namecounter+=1
@@ -479,7 +477,7 @@ class MainPage(tk.Frame):
             
             self.download_success()   #play the jingle
             
-            self.time = self.get_midi_length(wav_savename)   #length of soundfile
+            self.time = self.get_wav_length(wav_savename)   #length of soundfile
             
             self.wav_savename = wav_savename   #need for creating .mp4
             
@@ -497,7 +495,7 @@ class MainPage(tk.Frame):
         
         self.dat = fits.getdata(str(self.path_to_im.get()))
         
-        #many cutouts, especially those in the r-band, have pesky foreground stars and other artifacts, which will invariably dominate the display of the image stretch. one option is that I can grab the corresponding .wav image for the galaxy and create a 'mask bool' of 0s and 1s, then multiply this by the image in order to dictate v1, v2, and the normalization *strictly* on the central galaxy pixel values. 
+        #many cutouts, especially those in the r-band, have pesky foreground stars and other artifacts, which will invariably dominate the display of the image stretch. one option is that I can grab the corresponding mask image for the galaxy and create a 'mask bool' of 0s and 1s, then multiply this by the image in order to dictate v1, v2, and the normalization *strictly* on the central galaxy pixel values. 
         
         try:
             full_filepath = str(self.path_to_im.get()).split('/')
@@ -508,7 +506,7 @@ class MainPage(tk.Frame):
         except:
             print('Selected filename is not split with "-" characters with galaxyband; defaulting to generic wavelength.')
             galaxyname = split_filename[0]   #should still be the full filename
-            galaxyband = 'noband'
+            galaxyband = ' '
         
         try:
             if (galaxyband=='g') | (galaxyband=='r') | (galaxyband=='z'):
@@ -633,6 +631,12 @@ class MainPage(tk.Frame):
         #remove current bar, if applicable
         try:
             self.current_bar.remove()
+        except:
+            pass
+        
+        #remove animation bar, if applicable
+        try:
+            self.l.remove()
         except:
             pass
         
@@ -848,7 +852,7 @@ class MainPage(tk.Frame):
         #if the first x coordinate is greater than the second, then all set. 
         #otherwise, lists arranged from right to left. fix.
         #must also flip mean_list so that the values remain matched with the correct lines
-        if first_x>second_x:
+        if first_x<second_x:
             self.all_line_coords.sort()
             self.mean_list.reverse()
 
@@ -915,6 +919,18 @@ class MainPage(tk.Frame):
             self.canvas.draw()
             
     def drawSqRec(self, event):
+        
+        #remove animation line, if applicable
+        try:
+            self.l.remove()
+        except:
+            pass
+        
+        #remove current bar, if applicable
+        try:
+            self.current_bar.remove()
+        except:
+            pass
         
         try:
             self.angle = float(self.angle_box.get())
@@ -1015,7 +1031,7 @@ class MainPage(tk.Frame):
         self.note_names = self.note_names.split("-")   #converts self.note_names into a proper list of note strings
         
         print(selected_sig)
-        print(self.note_names)
+        #print(self.note_names)
                 
         #use user-drawn rectangle in order to define xmin, xmax; ymin, ymax. if no rectangle drawn, then default to image width for x and some fraction of the height for y.
         try:
@@ -1051,12 +1067,21 @@ class MainPage(tk.Frame):
         self.xminmax_entry.insert(0,f'{mean_px_min}, {mean_px_max}')
         
         if self.angle == 0:
-            #band = self.dat[:,self.ymin:self.ymax]   #isolates pixels within horizontal band across the image from y_min to y_max
             cropped_data = self.dat[self.ymin:self.ymax, self.xmin:self.xmax]   #[rows,columns]; isolates pixels within the user-defined region
-            strips = []   #create empty array for 1px strips
             mean_strip_values = []   #create empty array for mean px values of the strips
             vertical_lines = [cropped_data[:, i] for i in range(self.xmax-self.xmin)]
             
+            #creating list of vertical strip coordinates (will need for animation!)
+            x_coords = np.arange(self.xmin,self.xmax,1)
+            y_coords = np.arange(self.ymin,self.ymax,1)
+            self.all_line_coords = []
+            for i in range(self.xmax-self.xmin):
+                x = np.zeros(len(y_coords))+x_coords[i]
+                y = y_coords
+                self.all_line_coords.append(list(zip(np.ndarray.tolist(np.round(x,3)),
+                                                np.ndarray.tolist(np.round(y,3)))))
+            
+            #creating mean strip values from the vertical line pixel values
             for line in vertical_lines:
                 mean_strip_values.append(np.mean(line))
             
@@ -1094,7 +1119,7 @@ class MainPage(tk.Frame):
             self.vel_data.append(note_velocity)
                 
         self.midi_allnotes() 
-
+        
     def midi_allnotes(self):
         
         self.create_rectangle()
@@ -1108,11 +1133,20 @@ class MainPage(tk.Frame):
         for i in range(len(self.t_data)):
             midi_file.addNote(track=0, channel=0, pitch=self.midi_data[i], time=self.t_data[i], duration=self.duration, volume=self.vel_data[i])
         midi_file.writeFile(self.memfile)
-        
+
         mixer.init()
         self.memfile.seek(0)
         mixer.music.load(self.memfile)
+        
+        #I have to create an entirely new memfile in order to...wait for it...measure the audio length!
+        self.memfile_mido = BytesIO()
+        midi_file.writeFile(self.memfile_mido)
+        self.memfile_mido.seek(0)
+        mid = MidiFile(file=self.memfile_mido)
+        self.length_of_file = mid.length #-self.duration     
+       
         mixer.music.play()
+        self.sweep_line()
         
         self.midi_file = midi_file   #will need for saving as .wav file
         
@@ -1143,7 +1177,7 @@ class MainPage(tk.Frame):
         midi_file.writeFile(self.memfile)
         #with open(homedir+'/Desktop/test.mid',"wb") as f:
         #    self.midi_file.writeFile(f)
-        
+
         mixer.init()
         self.memfile.seek(0)   #for whatever reason, have to manually 'rewind' the track in order for mixer to play
         mixer.music.load(self.memfile)
@@ -1151,11 +1185,46 @@ class MainPage(tk.Frame):
     
     ###ANIMATION FUNCTIONS###
     
-    def get_midi_length(self,file):
+    def get_wav_length(self,file):
         wav_length = mixer.Sound(file).get_length() - 3   #there seems to be ~3 seconds of silence at the end of each file, so the "-3" trims this lardy bit. 
         print(f'File Length (seconds): {mixer.Sound(file).get_length()}')
         return wav_length
-    
+
+    def sweep_line(self):
+        
+        #xvals = np.linspace(self.xmin, self.xmax, len(self.t_data))
+        
+        def update_line(num, line):
+            current_pos = mixer.music.get_pos()   #milliseconds
+
+            current_time_sec = current_pos / 1e3   #seconds
+
+            # Find the index corresponding to the current time
+            frame = min(int((current_time_sec / (self.length_of_file-self.duration)) * len(self.t_data)), len(self.t_data) - 1)
+            
+            line_xdat, line_ydat = map(list, zip(*self.all_line_coords[frame]))
+            line.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
+            return line,
+        
+        line, = self.ax.plot([], [], lw=1)
+        
+        self.l,v = self.ax.plot(self.xmin, self.ymin, self.xmax, self.ymax, lw=2, color='red')
+        len_of_song_ms = (self.length_of_file-self.duration)*(1e3) #milliseconds
+        
+        #there are len(self.midi_data)-1 intervals per len_of_song_ms, so
+        nintervals = len(self.midi_data)-1
+        
+        #for the duration of each interval, ...
+        duration_interval = len_of_song_ms/nintervals   #milliseconds
+        
+        #note...blitting removes the previous lines
+        self.line_anim = animation.FuncAnimation(self.fig, update_line, frames=len(self.t_data), 
+                                                 interval=duration_interval,fargs=(self.l,), 
+                                                 blit=True, repeat=False)
+        
+        self.line_anim.event_source.stop()
+
+
     def create_midi_animation(self):
         
         self.save_sound()
@@ -1264,5 +1333,5 @@ if __name__ == "__main__":
     
     
     #I should ALSO record a video tutorial on how to operate this doohickey.
-    #animations with the 2D galaxy cutout
     #A "SAVE AS CHORDS BUTTON!" w1+w3 overlay. w1 lower octaves, w3 higher? not yet sure.
+        #AKSHULLY. If I do decide to add this feature, then I can try (W3[0])(W1[0])(W3[1])(W1[1])...format. will be easier to directly compare consecutive notes! If that is the case...there is no need to invoke some sort of chord hoohaw -- I can simply merge the files. Should I use the same MIDI map for both, however? Hm...
