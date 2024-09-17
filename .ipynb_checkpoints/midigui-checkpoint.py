@@ -1004,6 +1004,12 @@ class MainPage(tk.Frame):
     
     def midi_setup_bar(self):
         
+        #remove animation bar, if applicable
+        try:
+            self.l.remove()
+        except:
+            pass
+        
         #define various quantities required for midi file generation
         self.y_scale = float(self.y_scale_entry.get())
         self.strips_per_beat = 10
@@ -1192,7 +1198,11 @@ class MainPage(tk.Frame):
 
     def sweep_line(self):
         
-        #xvals = np.linspace(self.xmin, self.xmax, len(self.t_data))
+        #remove current bar, if applicable
+        try:
+            self.current_bar.remove()
+        except:
+            pass
         
         def update_line(num, line):
             current_pos = mixer.music.get_pos()   #milliseconds
@@ -1334,4 +1344,4 @@ if __name__ == "__main__":
     
     #I should ALSO record a video tutorial on how to operate this doohickey.
     #A "SAVE AS CHORDS BUTTON!" w1+w3 overlay. w1 lower octaves, w3 higher? not yet sure.
-        #AKSHULLY. If I do decide to add this feature, then I can try (W3[0])(W1[0])(W3[1])(W1[1])...format. will be easier to directly compare consecutive notes! If that is the case...there is no need to invoke some sort of chord hoohaw -- I can simply merge the files. Should I use the same MIDI map for both, however? Hm...
+        #AKSHULLY. If I do decide to add this feature, then I can try (W3[0])(W1[0])(W3[1])(W1[1])...format. will be easier to directly compare consecutive notes! If that is the case...there is no need to invoke some sort of chord hoohaw -- I can simply merge the files. Should I use the same MIDI map for both, however? Hm...alternatively, I can layer them as originally intended. sui bian ni.
