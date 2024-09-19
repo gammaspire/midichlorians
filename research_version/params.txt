@@ -1,0 +1,10 @@
+#---------------------------------- File paths ----------------------------------
+
+path_to_ffmpeg     /Users/k215c316/Downloads/ffmpeg            # loc of ffmpeg program, need to generate .mp4 animation
+path_to_repos      /Users/k215c316/github/midichlorians/research_version/   # loc of GUI script (and miscellany) pulled from github
+initial_browsedir  /Users/k215c316/vf_html_w1_v2/all_input_fits/  # where to direct GUI to begin browsing for .FITS files
+
+#---------------------------------- Parameters ----------------------------------
+
+soundfont          /Users/k215c316/Desktop/pkmngba.sf2         # user's desired soundfont for .mid --> .wav conversion
+window_geometry    980x600                                     # size of GUI window, tweakable for different monitor sizes
