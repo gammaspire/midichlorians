@@ -1246,16 +1246,11 @@ class MainPage(tk.Frame):
         return line,
     
     def update_line_one(self,num,line1,line2):
-        xmin = 0
-        xmax = np.max(self.t_data)
-        ymin = int(np.min(self.midi_data))
-        ymax = int(np.max(self.midi_data))
+
+        i = self.xvals_anim[num]
+        line1.set_data([i, i], [self.ymin_anim-5, self.ymax_anim+5])
         
-        xvals = np.arange(0, xmax+1, 0.05)
-        i = xvals[num]
-        line1.set_data([i, i], [ymin-5, ymax+5])
-        
-        xvals_alt = self.map_value(xvals,0,np.max(xvals),0,len(self.all_line_coords)-1)
+        xvals_alt = self.map_value(self.xvals_anim,0,np.max(self.xvals_anim),0,len(self.all_line_coords)-1)
         i_alt = int(xvals_alt[num])
 
         line_xdat, line_ydat = map(list, zip(*self.all_line_coords[i_alt]))
@@ -1270,11 +1265,10 @@ class MainPage(tk.Frame):
         
         ani_savename = self.path_to_repos+'saved_mp4files/'+str(self.galaxy_name)+'-'+str(self.band)+'.mp4'   #using our current file conventions to define self.galaxy_name (see relevant line for further details); will save file to saved_mp4files directory
             
-        if os.path.isfile(ani_savename):    
-            self.namecounter_ani+=1
-            ani_savename = self.path_to_repos+'saved_mp4files/'+str(self.galaxy_name)+'-'+str(self.band)+'-'+str(self.namecounter_ani)+'.mp4'                
-        else:
-            self.namecounter_ani=0
+        while os.path.exists('{}{:d}.mp4'.format(ani_savename, self.namecounter_ani)):
+            self.namecounter_ani += 1
+            filename = '{}{:d}.mp4'.format(ani_savename,self.namecounter_ani)    
+            
         
         fig = figure.Figure(layout='constrained')
         spec=fig.add_gridspec(2,1)
@@ -1289,25 +1283,25 @@ class MainPage(tk.Frame):
         line2, = ax2.plot([],[],lw=1)
         l2,v = ax2.plot(self.xmin, self.ymin, self.xmax, self.ymax, lw=2, color='red')
 
-        xmin = 0
-        xmax = np.max(self.t_data)
-        ymin = int(np.min(self.midi_data))
-        ymax = int(np.max(self.midi_data))
+        self.xmin_anim = 0
+        self.xmax_anim = np.max(self.t_data)
+        self.ymin_anim = int(np.min(self.midi_data))
+        self.ymax_anim = int(np.max(self.midi_data))
 
-        xvals = np.arange(0, xmax+1, 0.05)   #possible x-values for each pixel line, increments of 0.05 (which are close enough that the bar appears to move continuously)
+        self.xvals_anim = np.arange(0, self.xmax_anim+1, 0.05)   #possible x-values for each pixel line, increments of 0.05 (which are close enough that the bar appears to move continuously)
 
         ax1.scatter(self.t_data, self.midi_data, self.vel_data, alpha=0.5, edgecolors='black')
         line, = ax1.plot([], [], lw=2)
-        l1,v = ax1.plot(xmin, ymin, xmax, ymax, lw=2, color='red')
+        l1,v = ax1.plot(self.xmin_anim, self.ymin_anim, self.xmax_anim, self.ymax_anim, lw=2, color='red')
                 
         ax1.set_xlabel('Time interval (s)', fontsize=12)
         ax1.set_ylabel('MIDI note', fontsize=12)
         fig.suptitle(self.galaxy_name,fontsize=15)
         
-        line_anim = animation.FuncAnimation(fig, self.update_line_one, frames=len(xvals), fargs=(l1,l2,), blit=True)
+        line_anim = animation.FuncAnimation(fig, self.update_line_one, frames=len(self.xvals_anim), fargs=(l1,l2,), blit=True)
 
         FFWriter = animation.FFMpegWriter()
-        line_anim.save(ani_savename,fps=len(xvals)/self.time)      
+        line_anim.save(ani_savename,fps=len(self.xvals_anim)/self.time)      
         
         del fig     #I am finished with the figure, so I shall delete references to the figure.
         
@@ -1320,10 +1314,11 @@ class MainPage(tk.Frame):
         input_video = ffmpeg.input(ani_savename)
         input_audio = ffmpeg.input(self.wav_savename)
         
-        #ffmpeg.output(input_video.video, input_audio.audio,ani_both_savename,codec='copy').run(quiet=True)
+        ffmpeg.output(input_video.video, input_audio.audio,ani_both_savename,codec='copy').run(quiet=True)
         
-        os.system('rm /Users/k215c316/Desktop/test.mp4')
-        ffmpeg.output(input_video.video, input_audio.audio, '/Users/k215c316/Desktop/test.mp4',codec='copy').run(quiet=True)
+        #for testing purposes (easy access), save concatenated file to Desktop
+        #os.system('rm /Users/k215c316/Desktop/test.mp4')
+        #ffmpeg.output(input_video.video, input_audio.audio, '/Users/k215c316/Desktop/test.mp4',codec='copy').run(quiet=True)
         
             
         self.download_success()

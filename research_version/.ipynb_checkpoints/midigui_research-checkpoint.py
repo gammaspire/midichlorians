@@ -1148,17 +1148,13 @@ class MainPage(tk.Frame):
         for i in range(len(y_data_scaled)):
             note_velocity = round(self.map_value(y_data_scaled[i],0,1,self.vel_min,self.vel_max)) #larger values, heavier sound
             self.vel_data.append(note_velocity)
-            
-            
-            
+              
         if int(self.var_w1w3.get())>0:
 
             #t_data is the same
             y_data_alt = self.map_value(mean_strip_values_alt, min(mean_strip_values_alt), max(mean_strip_values_alt) ,0, 1)
 
             y_data_scaled_alt = y_data_alt**self.y_scale
-
-        #note_midis --> can use if I would like to change chords from default to, say, one below or above the default.
 
             self.midi_data_alt = []
             self.vel_data_alt = []
@@ -1282,12 +1278,10 @@ class MainPage(tk.Frame):
     ###ANIMATION FUNCTIONS###
     
     def get_wav_length(self,file):
-        wav_length = mixer.Sound(file).get_length() - 3   #there seems to be ~3 seconds of silence at the end of each file, so the "-3" trims this lardy bit. 
+        wav_length = mixer.Sound(file).get_length() - 3   #there seems to be ~3 seconds of silence at the end of each file, so the "- 4" trims this lardy bit. 
         print(f'File Length (seconds): {mixer.Sound(file).get_length()}')
         return wav_length
-    
 
-    
     def sweep_line(self):
         
         #remove current bar, if applicable
@@ -1311,51 +1305,43 @@ class MainPage(tk.Frame):
         self.line_anim = animation.FuncAnimation(self.fig, self.update_line_gui, frames=len(self.t_data), 
                                                  interval=self.duration_interval,fargs=(self.l,), 
                                                  blit=True, repeat=False)
+    
     #FOR THE GUI ANIMATION
     def update_line_gui(self, num, line):
-            current_pos = mixer.music.get_pos()   #milliseconds
+        current_pos = mixer.music.get_pos()   #milliseconds
 
-            current_time_sec = current_pos / 1e3   #seconds
+        current_time_sec = current_pos / 1e3   #seconds
 
-            # Find the index corresponding to the current time
-            frame = min(int((current_time_sec / (self.length_of_file-self.duration)) * len(self.t_data)), len(self.t_data) - 1)
-            
-            line_xdat, line_ydat = map(list, zip(*self.all_line_coords[frame]))
-            line.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
-            return line,
+        # Find the index corresponding to the current time
+        frame = min(int((current_time_sec / (self.length_of_file-self.duration)) * len(self.t_data)), len(self.t_data) - 1)
+
+        line_xdat, line_ydat = map(list, zip(*self.all_line_coords[frame]))
+        line.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
+        return line,
     
     #FOR W1+W3 OVERLAY.    
     def update_line_all(self, num, line1, line2, line3):
-            xmin = 0
-            xmax = np.max(self.t_data)
-            ymin = int(np.min(self.midi_data+self.midi_data_alt))
-            ymax = int(np.max(self.midi_data+self.midi_data_alt))
-            
-            xvals = np.arange(0, xmax+1, 0.05)
-            i = xvals[num]
-            line1.set_data([i, i], [ymin-5, ymax+5])
-            
-            xvals_alt = self.map_value(xvals,0,np.max(xvals),0,len(self.all_line_coords)-1)
-            i_alt = int(xvals_alt[num])
-            
-            line_xdat, line_ydat = map(list, zip(*self.all_line_coords[i_alt]))
-            line2.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
-            line3.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
-            
-            return line1, line2, line3,
+
+        xvals = np.arange(0, self.xmax_anim+1, 0.05)
+        i = xvals[num]
+        line1.set_data([i, i], [self.ymin_anim-5, self.ymax_anim+5])
+
+        xvals_alt = self.map_value(xvals,0,np.max(xvals),0,len(self.all_line_coords)-1)
+        i_alt = int(xvals_alt[num])
+
+        line_xdat, line_ydat = map(list, zip(*self.all_line_coords[i_alt]))
+        line2.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
+        line3.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
+
+        return line1, line2, line3,
     
     #ONLY ONE WAVELENGTH BAND? BENE - ONLY TWO LINES TO UPDATE.
     def update_line_one(self,num,line1,line2):
-        xmin = 0
-        xmax = np.max(self.t_data)
-        ymin = int(np.min(self.midi_data))
-        ymax = int(np.max(self.midi_data))
         
-        xvals = np.arange(0, xmax+1, 0.05)
-        i = xvals[num]
-        line1.set_data([i, i], [ymin-5, ymax+5])
+        i = self.xvals_anim[num]
+        line1.set_data([i, i], [self.ymin_anim-5, self.ymax_anim+5])
         
-        xvals_alt = self.map_value(xvals,0,np.max(xvals),0,len(self.all_line_coords)-1)
+        xvals_alt = self.map_value(self.xvals_anim,0,np.max(self.xvals_anim),0,len(self.all_line_coords)-1)
         i_alt = int(xvals_alt[num])
 
         line_xdat, line_ydat = map(list, zip(*self.all_line_coords[i_alt]))
@@ -1385,10 +1371,9 @@ class MainPage(tk.Frame):
             ax2 = fig.add_subplot(spec[1,0])
             ax3 = fig.add_subplot(spec[1,1])
             
-            ax1.scatter(self.t_data, self.midi_data, self.vel_data, alpha=0.5, 
-                       edgecolors='black',color='green',label=self.band)
+            #add alt values to ax1
             ax1.scatter(self.t_data, self.midi_data_alt, self.vel_data_alt, alpha=0.5,
-                       edgecolors='black',color='orange',label=self.band_alt)
+                       edgecolors='black',color='tab:orange',label=self.band_alt)
             
             v1_3 = scoreatpercentile(self.dat_alt*self.mask_bool,0.5)
             v2_3 = scoreatpercentile(self.dat_alt*self.mask_bool,99.9)
@@ -1397,11 +1382,18 @@ class MainPage(tk.Frame):
 
             ax3.imshow(self.dat_alt,origin='lower',norm=norm_im3,cmap='gray',alpha=0.9)
             line3, = ax3.plot([], [], lw=1)
-            l3,v = ax3.plot(self.xmin, self.ymin, self.xmax, self.ymax, lw=2, color='red')
+            l3,v = ax3.plot(self.xmin, self.ymin, self.xmax, self.ymax, lw=2, color='tab:orange')
+            ax3.text(0.05,0.95, self.band_alt,
+                horizontalalignment='left',
+                verticalalignment='top',
+                transform=ax3.transAxes,
+                color='tab:orange',fontsize=13,
+                fontweight='bold',
+                backgroundcolor='white')
 
             #concatenate the MIDI lists~
-            ymin = int(np.min(self.midi_data+self.midi_data_alt))
-            ymax = int(np.max(self.midi_data+self.midi_data_alt))
+            self.ymin_anim = int(np.min(self.midi_data+self.midi_data_alt))
+            self.ymax_anim = int(np.max(self.midi_data+self.midi_data_alt))
         
         else:
             
@@ -1409,39 +1401,50 @@ class MainPage(tk.Frame):
             spec = fig.add_gridspec(2, 1)
             ax1 = fig.add_subplot(spec[0,:])
             ax2 = fig.add_subplot(spec[1,0])
-            ax1.scatter(self.t_data, self.midi_data, self.vel_data, alpha=0.5, edgecolors='black')  
                         
-            ymin = int(np.min(self.midi_data))
-            ymax = int(np.max(self.midi_data))
+            self.ymin_anim = int(np.min(self.midi_data))
+            self.ymax_anim = int(np.max(self.midi_data))
         
         v1_2 = float(self.v1slider.get())
         v2_2 = float(self.v2slider.get())
         norm_im2 = simple_norm(self.dat*self.mask_bool,'asinh', min_percent=0.5, max_percent=99.9,
                                   min_cut=v1_2, max_cut=v2_2)  #'beautify' the image
         ax2.imshow(self.dat,origin='lower',norm=norm_im2,cmap='gray',alpha=0.9)
+        
         line2, = ax2.plot([],[],lw=1)
-        l2,v = ax2.plot(self.xmin,self.ymin,self.xmax,self.ymax,lw=2,color='red')  
+        l2,v = ax2.plot(self.xmin,self.ymin,self.xmax,self.ymax,lw=2,color='green')
+        ax2.text(0.05,0.95, self.band,
+                horizontalalignment='left',
+                verticalalignment='top',
+                transform=ax2.transAxes,
+                color='green',fontsize=13,
+                fontweight='bold',
+                backgroundcolor='white')
+        
+        ax1.scatter(self.t_data, self.midi_data, self.vel_data, alpha=0.5, color='green', 
+                    marker='^', edgecolors='black', label=self.band)
+        ax1.legend(fontsize=10,loc='upper left')
         
         line1, = ax1.plot([], [], lw=2)
 
-        xmin = 0
-        xmax = np.max(self.t_data)
+        self.xmin_anim = 0
+        self.xmax_anim = np.max(self.t_data)
 
-        xvals = np.arange(0, xmax+1, 0.05)   #possible x-values for each pixel line, increments of 0.05 (which are close enough that the bar appears to move continuously)
+        self.xvals_anim = np.arange(0, self.xmax_anim+1, 0.05)   #possible x-values for each pixel line, increments of 0.05 (which are close enough that the bar appears to move continuously)
 
-        l1,v = ax1.plot(xmin, ymin, xmax, ymax, lw=2, color='red')
+        l1,v = ax1.plot(self.xmin_anim, self.ymin_anim, self.xmax_anim, self.ymax_anim, lw=2, color='red')
         
         if int(self.var_w1w3.get())>0:
-            line_anim = animation.FuncAnimation(fig, self.update_line_all, frames=len(xvals), fargs=(l1,l2,l3,),blit=True)
+            line_anim = animation.FuncAnimation(fig, self.update_line_all, frames=len(self.xvals_anim), fargs=(l1,l2,l3,),blit=True)
         else:
-            line_anim = animation.FuncAnimation(fig, self.update_line_one, frames=len(xvals), fargs=(l1,l2,),blit=True)
+            line_anim = animation.FuncAnimation(fig, self.update_line_one, frames=len(self.xvals_anim), fargs=(l1,l2,),blit=True)
         
         ax1.set_xlabel('Time interval (s)', fontsize=12)
         ax1.set_ylabel('MIDI note', fontsize=12)
         fig.suptitle(self.galaxy_name,fontsize=15)
         
         FFWriter = animation.FFMpegWriter()
-        line_anim.save(ani_savename,fps=len(xvals)/self.time)      
+        line_anim.save(ani_savename,fps=len(self.xvals_anim)/(self.time))      
         
         del fig     #I am finished with the figure, so I shall delete references to the figure.
         
