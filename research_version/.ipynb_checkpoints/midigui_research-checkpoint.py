@@ -1344,16 +1344,24 @@ class MainPage(tk.Frame):
             
             return line1, line2, line3,
     
-    #ONLY ONE WAVELENGTH BAND? BENE - ONLY ONE LINE TO UPDATE.
-    def update_line_one(self,num,line1):
+    #ONLY ONE WAVELENGTH BAND? BENE - ONLY TWO LINES TO UPDATE.
+    def update_line_one(self,num,line1,line2):
         xmin = 0
         xmax = np.max(self.t_data)
         ymin = int(np.min(self.midi_data))
         ymax = int(np.max(self.midi_data))
+        
         xvals = np.arange(0, xmax+1, 0.05)
         i = xvals[num]
         line1.set_data([i, i], [ymin-5, ymax+5])
-        return line1,
+        
+        xvals_alt = self.map_value(xvals,0,np.max(xvals),0,len(self.all_line_coords)-1)
+        i_alt = int(xvals_alt[num])
+
+        line_xdat, line_ydat = map(list, zip(*self.all_line_coords[i_alt]))
+        line2.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
+        
+        return line1, line2,
     
     def create_midi_animation(self):
         
@@ -1382,23 +1390,13 @@ class MainPage(tk.Frame):
             ax1.scatter(self.t_data, self.midi_data_alt, self.vel_data_alt, alpha=0.5,
                        edgecolors='black',color='orange',label=self.band_alt)
             
-            v1_2 = scoreatpercentile(self.dat*self.mask_bool,0.5)
-            v2_2 = scoreatpercentile(self.dat*self.mask_bool,99.9)
-            norm_im2 = simple_norm(self.dat*self.mask_bool,'asinh', min_percent=0.5, max_percent=99.9,
-                                  min_cut=v1_2, max_cut=v2_2)  #'beautify' the image
-            
             v1_3 = scoreatpercentile(self.dat_alt*self.mask_bool,0.5)
             v2_3 = scoreatpercentile(self.dat_alt*self.mask_bool,99.9)
             norm_im3 = simple_norm(self.dat_alt*self.mask_bool,'asinh', min_percent=0.5, max_percent=99.9,
                                   min_cut=v1_3, max_cut=v2_3)  #'beautify' the image
 
-            ax2.imshow(self.dat,origin='lower',norm=norm_im2)
-            ax3.imshow(self.dat_alt,origin='lower',norm=norm_im3)
-            
-            line2, = ax2.plot([], [], lw=1)
+            ax3.imshow(self.dat_alt,origin='lower',norm=norm_im3,cmap='gray',alpha=0.9)
             line3, = ax3.plot([], [], lw=1)
-            
-            l2,v = ax2.plot(self.xmin, self.ymin, self.xmax, self.ymax, lw=2, color='red')
             l3,v = ax3.plot(self.xmin, self.ymin, self.xmax, self.ymax, lw=2, color='red')
 
             #concatenate the MIDI lists~
@@ -1407,13 +1405,23 @@ class MainPage(tk.Frame):
         
         else:
             
-            fig = figure.Figure() 
-            ax1 = fig.add_subplot()
+            fig = figure.Figure(layout="constrained")
+            spec = fig.add_gridspec(2, 1)
+            ax1 = fig.add_subplot(spec[0,:])
+            ax2 = fig.add_subplot(spec[1,0])
             ax1.scatter(self.t_data, self.midi_data, self.vel_data, alpha=0.5, edgecolors='black')  
-            
+                        
             ymin = int(np.min(self.midi_data))
             ymax = int(np.max(self.midi_data))
-
+        
+        v1_2 = float(self.v1slider.get())
+        v2_2 = float(self.v2slider.get())
+        norm_im2 = simple_norm(self.dat*self.mask_bool,'asinh', min_percent=0.5, max_percent=99.9,
+                                  min_cut=v1_2, max_cut=v2_2)  #'beautify' the image
+        ax2.imshow(self.dat,origin='lower',norm=norm_im2,cmap='gray',alpha=0.9)
+        line2, = ax2.plot([],[],lw=1)
+        l2,v = ax2.plot(self.xmin,self.ymin,self.xmax,self.ymax,lw=2,color='red')  
+        
         line1, = ax1.plot([], [], lw=2)
 
         xmin = 0
@@ -1422,12 +1430,11 @@ class MainPage(tk.Frame):
         xvals = np.arange(0, xmax+1, 0.05)   #possible x-values for each pixel line, increments of 0.05 (which are close enough that the bar appears to move continuously)
 
         l1,v = ax1.plot(xmin, ymin, xmax, ymax, lw=2, color='red')
-
         
         if int(self.var_w1w3.get())>0:
             line_anim = animation.FuncAnimation(fig, self.update_line_all, frames=len(xvals), fargs=(l1,l2,l3,),blit=True)
         else:
-            line_anim = animation.FuncAnimation(fig, self.update_line_one, frames=len(xvals), fargs=(l1,),blit=True)
+            line_anim = animation.FuncAnimation(fig, self.update_line_one, frames=len(xvals), fargs=(l1,l2,),blit=True)
         
         ax1.set_xlabel('Time interval (s)', fontsize=12)
         ax1.set_ylabel('MIDI note', fontsize=12)
@@ -1506,5 +1513,3 @@ if __name__ == "__main__":
     
     
     #I should ALSO record a video tutorial on how to operate this doohickey.
-    #A "SAVE AS CHORDS BUTTON!" w1+w3 overlay. w1 lower octaves, w3 higher? not yet sure.
-        #AKSHULLY. If I do decide to add this feature, then I can try (W3[0])(W1[0])(W3[1])(W1[1])...format. will be easier to directly compare consecutive notes! If that is the case...there is no need to invoke some sort of chord hoohaw -- I can simply merge the files. Should I use the same MIDI map for both, however? Hm...alternatively, I can layer them as originally intended. sui bian ni.

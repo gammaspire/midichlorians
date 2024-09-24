@@ -359,7 +359,7 @@ class MainPage(tk.Frame):
         duration_lab = tk.Label(self.frame_soni,text='Duration (sec)').grid(row=8,column=0)
         self.duration_entry = tk.Entry(self.frame_soni, width=10, borderwidth=2, bg='black', fg='lime green', 
                                        font='Arial 15')
-        self.duration_entry.insert(0,'1')
+        self.duration_entry.insert(0,'0.4')
         self.duration_entry.grid(row=8,column=1,columnspan=1)
     
     def init_display_size(self):
@@ -1225,16 +1225,45 @@ class MainPage(tk.Frame):
         nintervals = len(self.midi_data)-1
         
         #for the duration of each interval, ...
-        duration_interval = len_of_song_ms/nintervals   #milliseconds
+        self.duration_interval = len_of_song_ms/nintervals   #milliseconds
         
         #note...blitting removes the previous lines
-        self.line_anim = animation.FuncAnimation(self.fig, update_line, frames=len(self.t_data), 
-                                                 interval=duration_interval,fargs=(self.l,), 
+        self.line_anim = animation.FuncAnimation(self.fig, self.update_line_gui, frames=len(self.t_data), 
+                                                 interval=self.duration_interval,fargs=(self.l,), 
                                                  blit=True, repeat=False)
+
+    #FOR THE GUI ANIMATION
+    def update_line_gui(self, num, line):
+        current_pos = mixer.music.get_pos()   #milliseconds
+
+        current_time_sec = current_pos / 1e3   #seconds
+
+        # Find the index corresponding to the current time
+        frame = min(int((current_time_sec / (self.length_of_file-self.duration)) * len(self.t_data)), len(self.t_data) - 1)
+
+        line_xdat, line_ydat = map(list, zip(*self.all_line_coords[frame]))
+        line.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
+        return line,
+    
+    def update_line_one(self,num,line1,line2):
+        xmin = 0
+        xmax = np.max(self.t_data)
+        ymin = int(np.min(self.midi_data))
+        ymax = int(np.max(self.midi_data))
         
-        self.line_anim.event_source.stop()
+        xvals = np.arange(0, xmax+1, 0.05)
+        i = xvals[num]
+        line1.set_data([i, i], [ymin-5, ymax+5])
+        
+        xvals_alt = self.map_value(xvals,0,np.max(xvals),0,len(self.all_line_coords)-1)
+        i_alt = int(xvals_alt[num])
 
-
+        line_xdat, line_ydat = map(list, zip(*self.all_line_coords[i_alt]))
+        line2.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
+        
+        return line1, line2,
+    
+    
     def create_midi_animation(self):
         
         self.save_sound()
@@ -1247,13 +1276,18 @@ class MainPage(tk.Frame):
         else:
             self.namecounter_ani=0
         
-        fig = figure.Figure() 
+        fig = figure.Figure(layout='constrained')
+        spec=fig.add_gridspec(2,1)
+        ax1 = fig.add_subplot(spec[0,:])
+        ax2 = fig.add_subplot(spec[1,0])
         
-        ax = fig.add_subplot()
-        ax.scatter(self.t_data, self.midi_data, self.vel_data, alpha=0.5, edgecolors='black')
+        v1_2 = float(self.v1slider.get())
+        v2_2 = float(self.v2slider.get())
+        norm_im2 = simple_norm(self.dat*self.mask_bool,'asinh', min_percent=0.5, max_percent=99.9, min_cut=v1_2, max_cut=v2_2) 
         
-        ax.set_xlabel('Time interval (s)', fontsize=12)
-        ax.set_ylabel('MIDI note', fontsize=12)
+        ax2.imshow(self.dat, origin='lower', norm=norm_im2, cmap='gray', alpha=0.9)
+        line2, = ax2.plot([],[],lw=1)
+        l2,v = ax2.plot(self.xmin, self.ymin, self.xmax, self.ymax, lw=2, color='red')
 
         xmin = 0
         xmax = np.max(self.t_data)
@@ -1262,16 +1296,15 @@ class MainPage(tk.Frame):
 
         xvals = np.arange(0, xmax+1, 0.05)   #possible x-values for each pixel line, increments of 0.05 (which are close enough that the bar appears to move continuously)
 
-        def update_line(num, line):
-            i = xvals[num]
-            line.set_data([i, i], [ymin-5, ymax+5])
-            return line,
-
-        line, = ax.plot([], [], lw=2)
+        ax1.scatter(self.t_data, self.midi_data, self.vel_data, alpha=0.5, edgecolors='black')
+        line, = ax1.plot([], [], lw=2)
+        l1,v = ax1.plot(xmin, ymin, xmax, ymax, lw=2, color='red')
+                
+        ax1.set_xlabel('Time interval (s)', fontsize=12)
+        ax1.set_ylabel('MIDI note', fontsize=12)
+        fig.suptitle(self.galaxy_name,fontsize=15)
         
-        l,v = ax.plot(xmin, ymin, xmax, ymax, lw=2, color='red')
-        
-        line_anim = animation.FuncAnimation(fig, update_line, frames=len(xvals), fargs=(l,),blit=True)
+        line_anim = animation.FuncAnimation(fig, self.update_line_one, frames=len(xvals), fargs=(l1,l2,), blit=True)
 
         FFWriter = animation.FFMpegWriter()
         line_anim.save(ani_savename,fps=len(xvals)/self.time)      
@@ -1280,16 +1313,18 @@ class MainPage(tk.Frame):
         
         ani_both_savename = self.path_to_repos+'saved_mp4files/'+str(self.galaxy_name)+'-'+str(self.band)+'-concat.mp4'
         
-        if os.path.isfile(ani_both_savename):    
-            self.namecounter_ani_both+=1
-            ani_both_savename = self.path_to_repos+'saved_mp4files/'+str(self.galaxy_name)+'-'+str(self.band)+'-concat-'+str(self.namecounter_ani_both)+'.mp4'                
-        else:
-            self.namecounter_ani_both=0
+        while os.path.exists('{}{:d}.mp4'.format(ani_both_savename, self.namecounter_ani_both)):
+            self.namecounter_ani_both += 1
+            filename = '{}{:d}.mp4'.format(ani_both_savename,self.namecounter_ani_both)
         
         input_video = ffmpeg.input(ani_savename)
         input_audio = ffmpeg.input(self.wav_savename)
         
-        ffmpeg.concat(input_video, input_audio, v=1, a=1).output(ani_both_savename).run(capture_stdout=True, capture_stderr=True)
+        #ffmpeg.output(input_video.video, input_audio.audio,ani_both_savename,codec='copy').run(quiet=True)
+        
+        os.system('rm /Users/k215c316/Desktop/test.mp4')
+        ffmpeg.output(input_video.video, input_audio.audio, '/Users/k215c316/Desktop/test.mp4',codec='copy').run(quiet=True)
+        
             
         self.download_success()
         

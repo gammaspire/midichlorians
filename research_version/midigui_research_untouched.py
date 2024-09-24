@@ -26,6 +26,7 @@ from scipy.stats import scoreatpercentile
 from scipy import spatial
 from astropy.visualization import simple_norm
 from astropy.io import fits
+from reproject import reproject_interp
 from tkinter import font as tkFont
 from tkinter import messagebox
 from tkinter import filedialog
@@ -63,44 +64,6 @@ class App(tk.Tk):
             frame.rowconfigure(i, weight=1)
         
         self.show_frame(MainPage)  #a method to be defined below (see MainPage class)
-        self.create_menubar()      #FOR MAC USERS: WILL APPEAR ON THE *MAC MENUBAR*, NOT THE TK WINDOW.
-    
-    def create_menubar(self):
-        
-        self.menu = tk.Menu(self)
-
-        self.filemenu = tk.Menu(self.menu, tearoff=0)
-        self.filemenu.add_command(label='Load FITS file', command=self.popup_loadfits)
-        self.filemenu.add_command(label='Sonification Features', command=self.popup_sonifeat)
-        self.filemenu.add_command(label='Defining a Region', command=self.popup_rectline)
-        self.filemenu.add_command(label='Save .wav', command=self.popup_wav)
-        self.filemenu.add_command(label='Save .mp4', command=self.popup_mp4)
-        self.filemenu.add_separator()
-        self.filemenu.add_command(label='Exit Program', command=self.quit)
-        self.menu.add_cascade(label='Help',menu=self.filemenu)
-        
-        self.config(menu=self.menu)
-    
-    #once I record a proper video, I might also link the youtube address to each textboxes. and rather than type all text content here, I'll just create a few .txt files in the folder.
-    def popup_loadfits(self):
-        self.textbox1 = open(path_to_repos+'readme_files/loadfits.txt','r').reaed()
-        messagebox.showinfo('How to Load a FITS File',self.textbox1)
-    
-    def popup_sonifeat(self):
-        self.textbox2 = open(path_to_repos+'readme_files/sonifeat.txt','r').read()
-        messagebox.showinfo('Sonification Features',self.textbox2)
-    
-    def popup_rectline(self):
-        self.textbox3 = open(path_to_repos+'readme_files/rectline.txt').read()
-        messagebox.showinfo('Constraining Sonification Area',self.textbox3)
-    
-    def popup_wav(self):
-        self.textbox4 = open(path_to_repos+'readme_files/howtowav.txt').read()
-        messagebox.showinfo('Save Sound as WAV File',self.textbox4)
-    
-    def popup_mp4(self):
-        self.textbox5 = open(path_to_repos+'readme_files/howtomp4.txt').read()
-        messagebox.showinfo('Save Sound (with Animation!) as MP4 File',self.textbox5)
     
     def show_frame(self, cont):     #'cont' represents the controller, enables switching between frames/windows...I think.
         frame = self.frames[cont]
@@ -303,6 +266,7 @@ class MainPage(tk.Frame):
     def populate_save_widget(self):
         self.add_save_button()
         self.add_saveani_button()
+        self.add_w1w3merge_box()
     
     def populate_soni_widget(self):
         
@@ -391,13 +355,18 @@ class MainPage(tk.Frame):
         self.save_button.grid(row=0,column=0)
     
     def add_saveani_button(self):
-        self.saveani_button = tk.Button(self.frame_save, text='Save as MP4', padx=15, pady=10, font='Ariel 20',
-                                        command=self.create_midi_animation)
+        self.saveani_button = tk.Button(self.frame_save, text='Save as MP4', padx=15, pady=10, font='Ariel 20', command=self.create_midi_animation)
         self.saveani_button.grid(row=0,column=1)
     
+    def add_w1w3merge_box(self):
+        self.var_w1w3 = tk.IntVar()
+        self.w1w3merge_box = tk.Checkbutton(self.frame_save, text='Create Overlay MP3 (W1 & W3 only)', 
+                                            font='Ariel 20', onvalue=1, offvalue=0, variable=self.var_w1w3)
+        self.w1w3merge_box.grid(row=1,column=0,sticky='nsew',columnspan=2)
+    
+    
     def add_browse_button(self):
-        self.button_explore = tk.Button(self.frame_buttons ,text="Browse", padx=20, pady=10, font=self.helv20, 
-                                        command=self.browseFiles)
+        self.button_explore = tk.Button(self.frame_buttons ,text="Browse", padx=20, pady=10, font=self.helv20, command=self.browseFiles)
         self.button_explore.grid(row=1,column=0)
         
     def add_enter_button(self):
@@ -485,15 +454,20 @@ class MainPage(tk.Frame):
         else:
             self.textbox = 'Do not try to save an empty .wav file! Create a rectangle on the image canvas then click "Sonify" to generate MIDI notes.'
             self.popup()
-        
+    
     def initiate_canvas(self):
         
-        #delete any and all miscellany (galaxy image, squares, lines) from the canvas (created using 
-        #self.init_display_size())
-        self.label.delete('all')
-        self.ax.remove()
+        #I need to add a try...except statement here, in case a user accidentally clicks "Enter/Refresh" without loading a galaxy first. If they do so, then try to successfully load a galaxy, the GUI will break.
         
-        self.dat = fits.getdata(str(self.path_to_im.get()))
+        try:
+            #delete any and all miscellany (galaxy image, squares, lines) from the canvas (created using 
+            #self.init_display_size())
+            self.label.delete('all')
+            self.ax.remove()
+        except:
+            pass
+        
+        self.dat, self.dat_header = fits.getdata(str(self.path_to_im.get()), header=True)
         
         #many cutouts, especially those in the r-band, have pesky foreground stars and other artifacts, which will invariably dominate the display of the image stretch. one option is that I can grab the corresponding mask image for the galaxy and create a 'mask bool' of 0s and 1s, then multiply this by the image in order to dictate v1, v2, and the normalization *strictly* on the central galaxy pixel values. 
         
@@ -518,7 +492,7 @@ class MainPage(tk.Frame):
             self.mask_bool = ~(mask_image>0)
         
         except:
-            self.mask_bool = np.zeros((len(self.dat),len(self.dat)))+1  #create a fully array of 1s, won't affect image
+            self.mask_bool = np.zeros((len(self.dat),len(self.dat)))+1  #create a full array of 1s, won't affect image
             print('Mask image not found; proceeded with default v1, v2, and normalization values.')
         
         v1 = scoreatpercentile(self.dat*self.mask_bool,0.5)
@@ -791,8 +765,16 @@ class MainPage(tk.Frame):
         #create lists
         list_to_mean = []
         self.mean_list = []   #only need to initialize once
-        self.all_line_coords = []   #also only need to initialize once --> will give x,y coordinates for every line
-                                    #(hence the variable name).
+        self.all_line_coords = []   #also only need to initialize once --> will give x,y coordinates for every line (hence the variable name).
+        
+        intvar = int(self.var_w1w3.get())
+        
+        #for my next trick...I shall attempt to combine w1 and w3 MIDI notes into one file, if the user deems such as desirable. I will likely be the only user to ever utilize this feature.
+        if intvar>0:
+            self.band_alt = 'W3' if self.band=='W1' else 'W1'
+            self.dat_alt = fits.getdata(str(self.path_to_im.get()).replace(self.band,self.band_alt))
+            list_to_mean_alt = []
+            self.mean_list_alt = []
         
         for i in range(self.n_spaces):  #for the entire n_spaces extent: 
                                         #find x range of between same-index points on opposing sides of the 
@@ -817,9 +799,16 @@ class MainPage(tk.Frame):
                     #from the full data grid x, isolate all of values occupying the rows (xpoints) in 
                     #the column ypoints[n]
                     list_to_mean.append(self.dat[int(ypoints[n])][int(xpoints[n])])
-
+                    
+                    if intvar>0:
+                        list_to_mean_alt.append(self.dat_alt[int(ypoints[n])][int(xpoints[n])])
+                         
                 self.mean_list.append(np.mean(list_to_mean))
                 list_to_mean = []
+                
+                if intvar>0:
+                    self.mean_list_alt.append(np.mean(list_to_mean_alt))
+                    list_to_mean_alt = []
             
             #0,180,360,etc.
             if (self.angle/90)%2 == 0:
@@ -835,9 +824,16 @@ class MainPage(tk.Frame):
                     #from the full data grid x, isolate all of values occupying the rows (xpoints) in 
                     #the column ypoints[n]
                     list_to_mean.append(self.dat[int(ypoints[n])][int(xpoints[n])])
-
+                    
+                    if intvar>0:
+                        list_to_mean_alt.append(self.dat_alt[int(ypoints[n])][int(xpoints[n])])
+                    
                 self.mean_list.append(np.mean(list_to_mean))
                 list_to_mean = []
+                
+                if intvar>0:
+                    self.mean_list_alt.append(np.mean(list_to_mean_alt))
+                    list_to_mean_alt = []
             
         #check if all_line_coords arranged from left to right
         #if not, sort it (flip last list to first, etc.) and reverse mean_list accordingly
@@ -855,6 +851,9 @@ class MainPage(tk.Frame):
         if first_x<second_x:
             self.all_line_coords.sort()
             self.mean_list.reverse()
+            
+            if intvar>0:
+                self.mean_list_alt.reverse()
 
     def create_rectangle(self,x_one=None,x_two=None,y_one=None,y_two=None):
         
@@ -991,7 +990,17 @@ class MainPage(tk.Frame):
     def browseFiles(self):
         filename = filedialog.askopenfilename(initialdir = self.initial_browsedir, title = "Select a File", filetypes = ([("FITS Files", ".fits")]))
         self.path_to_im.delete(0,tk.END)
-        self.path_to_im.insert(0,filename)        
+        self.path_to_im.insert(0,filename)    
+        
+    def browseFiles_alt(self):
+        self.filename_alt = filedialog.askopenfilename(initialdir = self.initial_browsedir, title = "Select a File", filetypes = ([("FITS Files", ".fits")]))
+        return
+    
+    def reproject_alt_im(self):
+        return
+            
+    
+    
     
 ##########
 #the sonification-specific functions...
@@ -1091,11 +1100,27 @@ class MainPage(tk.Frame):
             for line in vertical_lines:
                 mean_strip_values.append(np.mean(line))
             
-            self.mean_list_norot = mean_strip_values
+            if int(self.var_w1w3.get())>0:
+                
+                self.band_alt = 'W3' if self.band=='W1' else 'W1'
+                self.dat_alt = fits.getdata(str(self.path_to_im.get()).replace(self.band,self.band_alt))
+                
+                cropped_data_alt = self.dat_alt[self.ymin:self.ymax, self.xmin:self.xmax]
+                mean_strip_values_alt = []   #create empty array for mean px values of the strips
+                vertical_lines = [cropped_data_alt[:, i] for i in range(self.xmax-self.xmin)]
+                
+                for line in vertical_lines:
+                    mean_strip_values_alt.append(np.mean(line))
+                
+            #need to define for when playing single note on the GUI
+            self.mean_list_norot = mean_strip_values        
         
         if self.angle != 0:
             self.RecRot()
             mean_strip_values = self.mean_list
+            
+            if int(self.var_w1w3.get())>0:
+                mean_strip_values_alt = self.mean_list_alt
     
         #rescale strip number to beats
         self.t_data = np.arange(0,len(mean_strip_values),1) / self.strips_per_beat   #convert to 'time' steps
@@ -1123,8 +1148,47 @@ class MainPage(tk.Frame):
         for i in range(len(y_data_scaled)):
             note_velocity = round(self.map_value(y_data_scaled[i],0,1,self.vel_min,self.vel_max)) #larger values, heavier sound
             self.vel_data.append(note_velocity)
+            
+            
+            
+        if int(self.var_w1w3.get())>0:
+
+            #t_data is the same
+            y_data_alt = self.map_value(mean_strip_values_alt, min(mean_strip_values_alt), max(mean_strip_values_alt) ,0, 1)
+
+            y_data_scaled_alt = y_data_alt**self.y_scale
+
+        #note_midis --> can use if I would like to change chords from default to, say, one below or above the default.
+
+            self.midi_data_alt = []
+            self.vel_data_alt = []
+
+            for i in range(len(y_data_scaled)):
+                note_velocity = round(self.map_value(y_data_scaled_alt[i],0,1,self.vel_min,self.vel_max)) #larger values, heavier sound
+                self.vel_data_alt.append(note_velocity)
+
+            for i in range(len(self.t_data)):
+                #apply the "note inversion" if desired --> high values either assigned high notes or, if inverted, low notes
+                if int(self.var_rev.get())==0:
+                    note_index = round(self.map_value(y_data_scaled_alt[i],0,1,0,n_notes-1))
+                if int(self.var_rev.get())==1:
+                    note_index = round(self.map_value(y_data_scaled_alt[i],0,1,n_notes-1,0))
+
+                self.midi_data_alt.append(note_midis[note_index])
                 
         self.midi_allnotes() 
+    
+    def midi_compare_w1w3(self):
+        relative_diff = (np.asarray(self.midi_data)-np.asarray(self.midi_data_alt))/(np.asarray(self.midi_data))
+        #a lot is happening here...
+        #converting to list an array of bools (with the criterion of abs(relative difference)>5%) that
+        #is then itself converted to an array of integers (0, 1) and multiplied by 127, which is the
+        #maximum volume.
+        bool_vals = (np.abs(relative_diff)<0.05)
+        self.relative_vel = np.ndarray.tolist(bool_vals.astype(int)*127)
+                
+        #little to no relative difference? NO VOLUME! if there is a difference, then 
+        self.relative_midi = np.ndarray.tolist(np.zeros(len(self.relative_vel))+np.min(self.midi_data)) #annnnd, lowest midi note value
         
     def midi_allnotes(self):
         
@@ -1132,13 +1196,39 @@ class MainPage(tk.Frame):
         
         #create midi file object, add tempo
         self.memfile = BytesIO()   #create working memory file (allows me to play the note without saving the file...yay!)
-        midi_file = MIDIFile(1) #one track
-        midi_file.addTempo(track=0,time=0,tempo=self.bpm) #only one track, so track=0th track; begin at time=0, tempo is bpm
-        midi_file.addProgramChange(tracknum=0, channel=0, time=0, program=self.program)
-        #add midi notes to file
-        for i in range(len(self.t_data)):
-            midi_file.addNote(track=0, channel=0, pitch=self.midi_data[i], time=self.t_data[i], duration=self.duration, volume=self.vel_data[i])
-        midi_file.writeFile(self.memfile)
+        
+        if int(self.var_w1w3.get())>0:
+            
+            #generate the relative velocity and midi note lists!
+            self.midi_compare_w1w3()
+            
+            midi_file = MIDIFile(3)
+            
+            midi_file.addTempo(track=0,time=0,tempo=self.bpm)
+            midi_file.addTempo(track=1,time=0,tempo=self.bpm)
+            midi_file.addTempo(track=2,time=0,tempo=self.bpm)
+            
+            midi_file.addProgramChange(tracknum=0,channel=0,time=0,program=self.program)
+            midi_file.addProgramChange(tracknum=1,channel=0,time=0,program=self.program)
+            midi_file.addProgramChange(tracknum=2,channel=1,time=0,program=47)
+            
+            for i in range(len(self.t_data)):
+                #I keep the velocity at 100 in order to best compare the two tracks
+                midi_file.addNote(track=0, channel=0, pitch=self.midi_data[i], time=self.t_data[i], duration=self.duration,volume=100)
+                midi_file.addNote(track=1, channel=0, pitch=self.midi_data_alt[i], time=self.t_data[i], duration=self.duration,volume=100)
+                midi_file.addNote(track=2, channel=1, pitch=int(self.relative_midi[i]), time=self.t_data[i], duration=self.duration,volume=int(self.relative_vel[i]))
+                
+            
+            midi_file.writeFile(self.memfile)
+        
+        else:
+            midi_file = MIDIFile(1) #one track
+            midi_file.addTempo(track=0,time=0,tempo=self.bpm) #only one track, so track=0th track; begin at time=0, tempo is bpm
+            midi_file.addProgramChange(tracknum=0, channel=0, time=0, program=self.program)
+            #add midi notes to file
+            for i in range(len(self.t_data)):
+                midi_file.addNote(track=0, channel=0, pitch=self.midi_data[i], time=self.t_data[i], duration=self.duration, volume=self.vel_data[i])
+            midi_file.writeFile(self.memfile)
 
         mixer.init()
         self.memfile.seek(0)
@@ -1195,7 +1285,9 @@ class MainPage(tk.Frame):
         wav_length = mixer.Sound(file).get_length() - 3   #there seems to be ~3 seconds of silence at the end of each file, so the "-3" trims this lardy bit. 
         print(f'File Length (seconds): {mixer.Sound(file).get_length()}')
         return wav_length
+    
 
+    
     def sweep_line(self):
         
         #remove current bar, if applicable
@@ -1203,18 +1295,6 @@ class MainPage(tk.Frame):
             self.current_bar.remove()
         except:
             pass
-        
-        def update_line(num, line):
-            current_pos = mixer.music.get_pos()   #milliseconds
-
-            current_time_sec = current_pos / 1e3   #seconds
-
-            # Find the index corresponding to the current time
-            frame = min(int((current_time_sec / (self.length_of_file-self.duration)) * len(self.t_data)), len(self.t_data) - 1)
-            
-            line_xdat, line_ydat = map(list, zip(*self.all_line_coords[frame]))
-            line.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
-            return line,
         
         line, = self.ax.plot([], [], lw=1)
         
@@ -1231,38 +1311,49 @@ class MainPage(tk.Frame):
         self.line_anim = animation.FuncAnimation(self.fig, self.update_line_gui, frames=len(self.t_data), 
                                                  interval=self.duration_interval,fargs=(self.l,), 
                                                  blit=True, repeat=False)
-
     #FOR THE GUI ANIMATION
     def update_line_gui(self, num, line):
-        current_pos = mixer.music.get_pos()   #milliseconds
+            current_pos = mixer.music.get_pos()   #milliseconds
 
-        current_time_sec = current_pos / 1e3   #seconds
+            current_time_sec = current_pos / 1e3   #seconds
 
-        # Find the index corresponding to the current time
-        frame = min(int((current_time_sec / (self.length_of_file-self.duration)) * len(self.t_data)), len(self.t_data) - 1)
-
-        line_xdat, line_ydat = map(list, zip(*self.all_line_coords[frame]))
-        line.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
-        return line,
+            # Find the index corresponding to the current time
+            frame = min(int((current_time_sec / (self.length_of_file-self.duration)) * len(self.t_data)), len(self.t_data) - 1)
+            
+            line_xdat, line_ydat = map(list, zip(*self.all_line_coords[frame]))
+            line.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
+            return line,
     
-    def update_line_one(self,num,line1,line2):
+    #FOR W1+W3 OVERLAY.    
+    def update_line_all(self, num, line1, line2, line3):
+            xmin = 0
+            xmax = np.max(self.t_data)
+            ymin = int(np.min(self.midi_data+self.midi_data_alt))
+            ymax = int(np.max(self.midi_data+self.midi_data_alt))
+            
+            xvals = np.arange(0, xmax+1, 0.05)
+            i = xvals[num]
+            line1.set_data([i, i], [ymin-5, ymax+5])
+            
+            xvals_alt = self.map_value(xvals,0,np.max(xvals),0,len(self.all_line_coords)-1)
+            i_alt = int(xvals_alt[num])
+            
+            line_xdat, line_ydat = map(list, zip(*self.all_line_coords[i_alt]))
+            line2.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
+            line3.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
+            
+            return line1, line2, line3,
+    
+    #ONLY ONE WAVELENGTH BAND? BENE - ONLY ONE LINE TO UPDATE.
+    def update_line_one(self,num,line1):
         xmin = 0
         xmax = np.max(self.t_data)
         ymin = int(np.min(self.midi_data))
         ymax = int(np.max(self.midi_data))
-        
         xvals = np.arange(0, xmax+1, 0.05)
         i = xvals[num]
         line1.set_data([i, i], [ymin-5, ymax+5])
-        
-        xvals_alt = self.map_value(xvals,0,np.max(xvals),0,len(self.all_line_coords)-1)
-        i_alt = int(xvals_alt[num])
-
-        line_xdat, line_ydat = map(list, zip(*self.all_line_coords[i_alt]))
-        line2.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
-        
-        return line1, line2,
-    
+        return line1,
     
     def create_midi_animation(self):
         
@@ -1276,55 +1367,93 @@ class MainPage(tk.Frame):
         else:
             self.namecounter_ani=0
         
-        fig = figure.Figure(layout='constrained')
-        spec=fig.add_gridspec(2,1)
-        ax1 = fig.add_subplot(spec[0,:])
-        ax2 = fig.add_subplot(spec[1,0])
+        if int(self.var_w1w3.get())>0:
+            
+            fig = figure.Figure(layout="constrained") 
+            spec = fig.add_gridspec(2, 2)
+
+            #ax1 will be the MIDI note plot...
+            ax1 = fig.add_subplot(spec[0,:])
+            ax2 = fig.add_subplot(spec[1,0])
+            ax3 = fig.add_subplot(spec[1,1])
+            
+            ax1.scatter(self.t_data, self.midi_data, self.vel_data, alpha=0.5, 
+                       edgecolors='black',color='green',label=self.band)
+            ax1.scatter(self.t_data, self.midi_data_alt, self.vel_data_alt, alpha=0.5,
+                       edgecolors='black',color='orange',label=self.band_alt)
+            
+            v1_2 = scoreatpercentile(self.dat*self.mask_bool,0.5)
+            v2_2 = scoreatpercentile(self.dat*self.mask_bool,99.9)
+            norm_im2 = simple_norm(self.dat*self.mask_bool,'asinh', min_percent=0.5, max_percent=99.9,
+                                  min_cut=v1_2, max_cut=v2_2)  #'beautify' the image
+            
+            v1_3 = scoreatpercentile(self.dat_alt*self.mask_bool,0.5)
+            v2_3 = scoreatpercentile(self.dat_alt*self.mask_bool,99.9)
+            norm_im3 = simple_norm(self.dat_alt*self.mask_bool,'asinh', min_percent=0.5, max_percent=99.9,
+                                  min_cut=v1_3, max_cut=v2_3)  #'beautify' the image
+
+            ax2.imshow(self.dat,origin='lower',norm=norm_im2)
+            ax3.imshow(self.dat_alt,origin='lower',norm=norm_im3)
+            
+            line2, = ax2.plot([], [], lw=1)
+            line3, = ax3.plot([], [], lw=1)
+            
+            l2,v = ax2.plot(self.xmin, self.ymin, self.xmax, self.ymax, lw=2, color='red')
+            l3,v = ax3.plot(self.xmin, self.ymin, self.xmax, self.ymax, lw=2, color='red')
+
+            #concatenate the MIDI lists~
+            ymin = int(np.min(self.midi_data+self.midi_data_alt))
+            ymax = int(np.max(self.midi_data+self.midi_data_alt))
         
-        v1_2 = float(self.v1slider.get())
-        v2_2 = float(self.v2slider.get())
-        norm_im2 = simple_norm(self.dat*self.mask_bool,'asinh', min_percent=0.5, max_percent=99.9, min_cut=v1_2, max_cut=v2_2) 
-        
-        ax2.imshow(self.dat, origin='lower', norm=norm_im2, cmap='gray', alpha=0.9)
-        line2, = ax2.plot([],[],lw=1)
-        l2,v = ax2.plot(self.xmin, self.ymin, self.xmax, self.ymax, lw=2, color='red')
+        else:
+            
+            fig = figure.Figure() 
+            ax1 = fig.add_subplot()
+            ax1.scatter(self.t_data, self.midi_data, self.vel_data, alpha=0.5, edgecolors='black')  
+            
+            ymin = int(np.min(self.midi_data))
+            ymax = int(np.max(self.midi_data))
+
+        line1, = ax1.plot([], [], lw=2)
 
         xmin = 0
         xmax = np.max(self.t_data)
-        ymin = int(np.min(self.midi_data))
-        ymax = int(np.max(self.midi_data))
 
         xvals = np.arange(0, xmax+1, 0.05)   #possible x-values for each pixel line, increments of 0.05 (which are close enough that the bar appears to move continuously)
 
-        ax1.scatter(self.t_data, self.midi_data, self.vel_data, alpha=0.5, edgecolors='black')
-        line, = ax1.plot([], [], lw=2)
         l1,v = ax1.plot(xmin, ymin, xmax, ymax, lw=2, color='red')
-                
+
+        
+        if int(self.var_w1w3.get())>0:
+            line_anim = animation.FuncAnimation(fig, self.update_line_all, frames=len(xvals), fargs=(l1,l2,l3,),blit=True)
+        else:
+            line_anim = animation.FuncAnimation(fig, self.update_line_one, frames=len(xvals), fargs=(l1,),blit=True)
+        
         ax1.set_xlabel('Time interval (s)', fontsize=12)
         ax1.set_ylabel('MIDI note', fontsize=12)
         fig.suptitle(self.galaxy_name,fontsize=15)
         
-        line_anim = animation.FuncAnimation(fig, self.update_line_one, frames=len(xvals), fargs=(l1,l2,), blit=True)
-
         FFWriter = animation.FFMpegWriter()
         line_anim.save(ani_savename,fps=len(xvals)/self.time)      
         
         del fig     #I am finished with the figure, so I shall delete references to the figure.
         
         ani_both_savename = self.path_to_repos+'saved_mp4files/'+str(self.galaxy_name)+'-'+str(self.band)+'-concat.mp4'
+        ani_both_savename = f'{self.path_to_repos}saved_mp4files/{self.galaxy_name}-{self.band}.mp4'
         
         while os.path.exists('{}{:d}.mp4'.format(ani_both_savename, self.namecounter_ani_both)):
             self.namecounter_ani_both += 1
-            filename = '{}{:d}.mp4'.format(ani_both_savename,self.namecounter_ani_both)
+        filename = '{}{:d}.mp4'.format(ani_both_savename,self.namecounter_ani_both)
         
         input_video = ffmpeg.input(ani_savename)
         input_audio = ffmpeg.input(self.wav_savename)
         
-        #ffmpeg.output(input_video.video, input_audio.audio,ani_both_savename,codec='copy').run(quiet=True)
-        
+        #comment out these next two lines and "uncomment" the third for the final version!
         os.system('rm /Users/k215c316/Desktop/test.mp4')
         ffmpeg.output(input_video.video, input_audio.audio, '/Users/k215c316/Desktop/test.mp4',codec='copy').run(quiet=True)
+        #ffmpeg.output(input_video.video, input_audio.audio, ani_both_savename,codec='copy').run(quiet=True)
         
+        #ffmpeg.concat(input_video, input_audio, v=1, a=1).output(ani_both_savename).run(capture_stdout=True, capture_stderr=True)
             
         self.download_success()
         
@@ -1342,8 +1471,7 @@ class MainPage(tk.Frame):
 if __name__ == "__main__":
     
     #parameter.txt file unpacking here
-    
-    
+
     if '-h' in sys.argv or '--help' in sys.argv:
         print("Usage: %s [-params (name of parameter.txt file, no single or double quotation marks)]")
         sys.exit(1)
