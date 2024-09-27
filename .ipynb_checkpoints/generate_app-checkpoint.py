@@ -31,6 +31,7 @@ from io import BytesIO
 from mido import MidiFile
 
 from rectangle_functions import rectangle
+from sono_functions import sono_defs
 
 homedir = os.getenv('HOME')
       
@@ -49,6 +50,9 @@ class MainPage(tk.Frame):
         #summon the RECTANGLE FUNCTIONS! (see rectangle_functions.py for further information)
         self.rec_func = rectangle()
         
+        #summon the SONIFICATION FUNCTIONS! (see sono_functions.py for further information)
+        self.son_func = sono_defs(soundfont=self.soundfont)
+        
         #initiating variables for the self.drawSq function
         self.bound_check=None
         self.x1=None
@@ -64,26 +68,12 @@ class MainPage(tk.Frame):
         self.namecounter_ani_both=0
                 
         #dictionary for different key signatures
-        
-        self.note_dict = {
-           'C Major': 'C2-D2-E2-F2-G2-A2-B2-C3-D3-E3-F3-G3-A3-B3-C4-D4-E4-F4-G4-A4-B4-C5-D5-E5-F5-G5-A5-B5',
-           'G Major': 'G1-A1-B1-C2-D2-E2-F#2-G2-A2-B2-C3-D3-E3-F#3-G3-A3-B3-C4-D4-E4-F#4-G4-A4-B4-C5-D5-E5-F#5',
-           'D Major': 'D2-E2-F#2-G2-A2-B2-C#3-D3-E3-F#3-G3-A3-B3-C#4-D4-E4-F#4-G4-A4-B4-C#5-D5-E5-F#5-G5-A5-B5-C#6',
-           'A Major': 'A1-B1-C#2-D2-E2-F#2-G#2-A2-B2-C#3-D3-E3-F#3-G#3-A3-B3-C#4-D4-E4-F#4-G#4-A4-B4-C#5-D5-E5-F#5-G#5',
-           'E Major': 'E2-F#2-G#2-A2-B2-C#3-D#3-E3-F#3-G#3-A3-B3-C#4-D#4-E4-F#4-G#4-A4-B4-C#5-D#5-E5-F#5-G#5-A5-B5-C#6-D#6',
-           'B Major': 'B1-C#2-D#2-E2-F#2-G#2-A#2-B3-C#3-D#3-E3-F#3-G#3-A#3-B4-C#4-D#4-E4-F#4-G#4-A#4-B5-C#5-D#5-E5-F#5-G#5-A#5',
-           'F# Major': 'F#2-G#2-A#2-B2-C#3-D#3-E#3-F#3-G#3-A#3-B3-C#4-D#4-E#4-F#4-G#4-A#4-B4-C#5-D#5-E#5-F#5-G#5-A#5-B5-C#6-D#6-E#6', 
-           'Gb Major': 'Gb1-Ab1-Bb1-Cb2-Db2-Eb2-F2-Gb2-Ab2-Bb2-Cb3-Db3-Eb3-F3-Gb3-Ab3-Bb3-Cb4-Db4-Eb4-F4-Gb4-Ab4-Bb4-Cb5-Db5-Eb5-F5',
-           'Db Major': 'Db2-Eb2-F2-Gb2-Ab2-Bb2-C3-Db3-Eb3-F3-Gb3-Ab3-Bb3-C4-Db4-Eb4-F4-Gb4-Ab4-Bb4-C5-Db5-Eb5-F5-Gb5-Ab5-Bb5-C6',
-           'Ab Major': 'Ab1-Bb1-C2-Db2-Eb2-F2-G2-Ab2-Bb2-C3-Db3-Eb3-F3-G3-Ab3-Bb3-C4-Db4-Eb4-F4-G4-Ab4-Bb4-C5-Db5-Eb5-F5-G5', 
-           'Eb Major': 'Eb2-F2-G2-Ab2-Bb2-C3-D3-Eb3-F3-G3-Ab3-Bb3-C4-D4-Eb4-F4-G4-Ab4-Bb4-C5-D5-Eb5-F5-G5-Ab5-Bb5-C6-D6',
-           'Bb Major': 'Bb1-C2-D2-Eb2-F2-G2-A2-Bb2-C3-D3-Eb3-F3-G3-A3-Bb3-C4-D4-Eb4-F4-G4-A4-Bb4-C5-D5-Eb5-F5-G5-A5',
-           'F Major': 'F2-G2-A2-Bb2-C3-D3-E3-F3-G3-A3-Bb3-C4-D4-E4-F4-G4-A4-Bb4-C5-D5-E5-F5-G5-A5-Bb5-C6-D6-E6', 
-        }
+        self.note_dict = self.son_func.note_dict
         
         #isolate the key signature names --> need for the dropdown menu
         self.keyvar_options=list(self.note_dict.keys())
 
+        #create empty string variable list, then set the default to option 2 (D Major)
         self.keyvar = tk.StringVar()
         self.keyvar.set(self.keyvar_options[2])
         
@@ -93,7 +83,7 @@ class MainPage(tk.Frame):
         #define a font
         self.helv20 = tkFont.Font(family='Helvetica', size=20, weight='bold')
         
-        #first frame...
+        #initiate (first) frame. there will only be one frame.
         tk.Frame.__init__(self,parent)
         
         #NOTE: columnconfigure and rowconfigure below enable the minimization and maximization of window to also affect widget size
@@ -119,13 +109,13 @@ class MainPage(tk.Frame):
             self.frame_buttons.columnconfigure(i, weight=1)
             self.frame_buttons.rowconfigure(i, weight=1)
             
-        #create soni frame, which holds the event button for converting data into sound (midifile).
+        #create sonification frame, which holds the event button for converting data into sound (midifile).
         #there are also heaps of text boxes with which the user can manipulate the sound conversion parameters
-        self.frame_soni=tk.LabelFrame(self,text='Parameters (Click "Sonify" to play)',padx=5,pady=5)
-        self.frame_soni.grid(row=7,column=2,rowspan=2,sticky='se')
+        self.frame_sono=tk.LabelFrame(self,text='Parameters (Click "Sonify" to play)',padx=5,pady=5)
+        self.frame_sono.grid(row=7,column=2,rowspan=2,sticky='se')
         for i in range(self.rowspan):
-            self.frame_soni.columnconfigure(i, weight=1)
-            self.frame_soni.rowconfigure(i, weight=1)
+            self.frame_sono.columnconfigure(i, weight=1)
+            self.frame_sono.rowconfigure(i, weight=1)
         
         #create editcanvas frame --> manipulates vmin, vmax, cmap of the display image
         self.frame_editcanvas = tk.LabelFrame(self,text='Change Display',padx=5,pady=5)
@@ -245,52 +235,52 @@ class MainPage(tk.Frame):
    
         #this checkbox inverts the note assignment such that high values have low notes and low values have high notes.
         self.var_rev = tk.IntVar()
-        self.rev_checkbox = tk.Checkbutton(self.frame_soni, text='Note Inversion', onvalue=1, offvalue=0, variable=self.var_rev, font='Arial 17')
+        self.rev_checkbox = tk.Checkbutton(self.frame_sono, text='Note Inversion', onvalue=1, offvalue=0, variable=self.var_rev, font='Arial 17')
         self.rev_checkbox.grid(row=0,column=0,columnspan=2)
         
-        ylab = tk.Label(self.frame_soni,text='yscale').grid(row=1,column=0)
-        self.y_scale_entry = tk.Entry(self.frame_soni, width=10, borderwidth=2, bg='black', fg='lime green', 
+        ylab = tk.Label(self.frame_sono,text='yscale').grid(row=1,column=0)
+        self.y_scale_entry = tk.Entry(self.frame_sono, width=10, borderwidth=2, bg='black', fg='lime green', 
                                       font='Arial 15')
         self.y_scale_entry.insert(0,'0.5')
         self.y_scale_entry.grid(row=1,column=1,columnspan=1)
         
-        vmin_lab = tk.Label(self.frame_soni,text='Min Velocity').grid(row=2,column=0)
-        self.vel_min_entry = tk.Entry(self.frame_soni, width=10, borderwidth=2, bg='black', fg='lime green', 
+        vmin_lab = tk.Label(self.frame_sono,text='Min Velocity').grid(row=2,column=0)
+        self.vel_min_entry = tk.Entry(self.frame_sono, width=10, borderwidth=2, bg='black', fg='lime green', 
                                       font='Arial 15')
         self.vel_min_entry.insert(0,'10')
         self.vel_min_entry.grid(row=2,column=1,columnspan=1)
         
-        vmax_lab = tk.Label(self.frame_soni,text='Max Velocity').grid(row=3,column=0)
-        self.vel_max_entry = tk.Entry(self.frame_soni, width=10, borderwidth=2, bg='black', fg='lime green', 
+        vmax_lab = tk.Label(self.frame_sono,text='Max Velocity').grid(row=3,column=0)
+        self.vel_max_entry = tk.Entry(self.frame_sono, width=10, borderwidth=2, bg='black', fg='lime green', 
                                       font='Arial 15')
         self.vel_max_entry.insert(0,'100')
         self.vel_max_entry.grid(row=3,column=1,columnspan=1)
         
-        bpm_lab = tk.Label(self.frame_soni,text='BPM').grid(row=4,column=0)
-        self.bpm_entry = tk.Entry(self.frame_soni, width=10, borderwidth=2, bg='black', fg='lime green', 
+        bpm_lab = tk.Label(self.frame_sono,text='BPM').grid(row=4,column=0)
+        self.bpm_entry = tk.Entry(self.frame_sono, width=10, borderwidth=2, bg='black', fg='lime green', 
                                   font='Arial 15')
         self.bpm_entry.insert(0,'35')
         self.bpm_entry.grid(row=4,column=1,columnspan=1)
         
-        xminmax_lab = tk.Label(self.frame_soni,text='xmin, xmax').grid(row=5,column=0)
-        self.xminmax_entry = tk.Entry(self.frame_soni, width=10, borderwidth=2, bg='black', fg='lime green',
+        xminmax_lab = tk.Label(self.frame_sono,text='xmin, xmax').grid(row=5,column=0)
+        self.xminmax_entry = tk.Entry(self.frame_sono, width=10, borderwidth=2, bg='black', fg='lime green',
                                       font='Arial 15')
         self.xminmax_entry.insert(0,'x1, x2')
         self.xminmax_entry.grid(row=5,column=1,columnspan=1)
         
-        key_lab = tk.Label(self.frame_soni,text='Key Signature').grid(row=6,column=0)
-        self.key_menu = tk.OptionMenu(self.frame_soni, self.keyvar, *self.keyvar_options)
+        key_lab = tk.Label(self.frame_sono,text='Key Signature').grid(row=6,column=0)
+        self.key_menu = tk.OptionMenu(self.frame_sono, self.keyvar, *self.keyvar_options)
         self.key_menu.config(bg='black',fg='black',font='Arial 15')
         self.key_menu.grid(row=6,column=1,columnspan=1)
         
-        program_lab = tk.Label(self.frame_soni,text='Instrument (0-127)').grid(row=7,column=0)
-        self.program_entry = tk.Entry(self.frame_soni, width=10, borderwidth=2, bg='black', fg='lime green', 
+        program_lab = tk.Label(self.frame_sono,text='Instrument (0-127)').grid(row=7,column=0)
+        self.program_entry = tk.Entry(self.frame_sono, width=10, borderwidth=2, bg='black', fg='lime green', 
                                       font='Arial 15')
         self.program_entry.insert(0,'0')
         self.program_entry.grid(row=7,column=1,columnspan=1)
         
-        duration_lab = tk.Label(self.frame_soni,text='Duration (sec)').grid(row=8,column=0)
-        self.duration_entry = tk.Entry(self.frame_soni, width=10, borderwidth=2, bg='black', fg='lime green', 
+        duration_lab = tk.Label(self.frame_sono,text='Duration (sec)').grid(row=8,column=0)
+        self.duration_entry = tk.Entry(self.frame_sono, width=10, borderwidth=2, bg='black', fg='lime green', 
                                        font='Arial 15')
         self.duration_entry.insert(0,'0.4')
         self.duration_entry.grid(row=8,column=1,columnspan=1)
@@ -338,7 +328,7 @@ class MainPage(tk.Frame):
         self.path_button.grid(row=1,column=1)
     
     def add_midi_button(self):
-        self.midi_button = tk.Button(self.frame_soni, text='Sonify', padx=20, pady=10, font=self.helv20, 
+        self.midi_button = tk.Button(self.frame_sono, text='Sonify', padx=20, pady=10, font=self.helv20, 
                                      command=self.midi_setup_bar)
         self.midi_button.grid(row=9,column=0,columnspan=2)
     
@@ -366,15 +356,10 @@ class MainPage(tk.Frame):
         self.create_rectangle()
     
     def decrement(self):
-        #a few lines in other functions switch self.angle from 90 (or 270) to 89.9 (for instance)
-        #to prevent this number from being inserted into the angle_box and then incremented/decremented, 
-        #I'll just pull the self.angle float again.
         self.rec_func.angle = float(self.angle_box.get())
         self.rec_func.angle -= 1   #decrement
         self.angle_box.delete(0,tk.END)   #delete current textbox entry
-        self.angle_box.insert(0,str(self.rec_func.angle))   #update entry with decremented angle
-        
-        #automatically rotate when - is clicked
+        self.angle_box.insert(0,str(self.rec_func.angle))   #update entry with decremented angle        
         self.create_rectangle()
         
     def initiate_canvas(self):
@@ -515,11 +500,12 @@ class MainPage(tk.Frame):
         
         self.closest_line_index = np.where(np.asarray(self.distances)==np.min(self.distances))[0][0]
     
+    #from the list of means, find the index at which the element is closest in value to the given mean pixel
     def find_closest_mean(self,meanlist):
-        
         #from https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
         self.closest_mean_index = np.where(np.asarray(meanlist) == min(meanlist, key=lambda x:abs(x-float(self.mean_px))))[0][0]     
     
+    #plot the bar for the click event!
     def placeBar(self, event):  
         
         self.x=event.xdata
@@ -720,11 +706,6 @@ class MainPage(tk.Frame):
     ###SONIFICATION FUNCTIONS###
     ############################
 
-    #typical sonification mapping function; maps value(s) from one range to another range; returns floats
-    def map_value(self, value, min_value, max_value, min_result, max_result):
-        result = min_result + (value - min_value)/(max_value - min_value)*(max_result - min_result)
-        return result
-    
     def midi_setup_bar(self):
         
         #remove animation bar, if applicable
@@ -784,7 +765,7 @@ class MainPage(tk.Frame):
         #rescale strip number to beats
         self.t_data = np.arange(0,len(mean_strip_values),1) / self.strips_per_beat   #convert to 'time' steps
         
-        y_data = self.map_value(mean_strip_values,min(mean_strip_values),max(mean_strip_values),0,1)   #normalizes values
+        y_data = self.son_func.map_value(mean_strip_values,min(mean_strip_values),max(mean_strip_values),0,1)   #normalizes values
         y_data_scaled = y_data**self.y_scale
         
         #the following converts note names into midi notes
@@ -797,15 +778,15 @@ class MainPage(tk.Frame):
         for i in range(len(self.t_data)):   #assigns midi note number to whichever y_data_scaled[i] is nearest
             #apply the "note inversion" if desired --> high values either assigned high notes or, if inverted, low notes
             if int(self.var_rev.get())==0:
-                note_index = round(self.map_value(y_data_scaled[i],0,1,0,n_notes-1))
+                note_index = round(self.son_func.map_value(y_data_scaled[i],0,1,0,n_notes-1))
             if int(self.var_rev.get())==1:
-                note_index = round(self.map_value(y_data_scaled[i],0,1,n_notes-1,0))
+                note_index = round(self.son_func.map_value(y_data_scaled[i],0,1,n_notes-1,0))
             self.midi_data.append(note_midis[note_index])
 
         #map data to note velocities (equivalent to the sound volume)
         self.vel_data = []
         for i in range(len(y_data_scaled)):
-            note_velocity = round(self.map_value(y_data_scaled[i],0,1,self.vel_min,self.vel_max)) #larger values, heavier sound
+            note_velocity = round(self.son_func.map_value(y_data_scaled[i],0,1,self.vel_min,self.vel_max)) #larger values, heavier sound
             self.vel_data.append(note_velocity)
                 
         self.midi_allnotes() 
@@ -813,65 +794,24 @@ class MainPage(tk.Frame):
     def midi_allnotes(self):
         
         self.create_rectangle()
-        
-        #create midi file object, add tempo
-        self.memfile = BytesIO()   #create working memory file (allows me to play the note without saving the file...yay!)
-        midi_file = MIDIFile(1) #one track
-        midi_file.addTempo(track=0,time=0,tempo=self.bpm) #only one track, so track=0th track; begin at time=0, tempo is bpm
-        midi_file.addProgramChange(tracknum=0, channel=0, time=0, program=self.program)
-        #add midi notes to file
-        for i in range(len(self.t_data)):
-            midi_file.addNote(track=0, channel=0, pitch=self.midi_data[i], time=self.t_data[i], duration=self.duration, volume=self.vel_data[i])
-        midi_file.writeFile(self.memfile)
 
-        mixer.init()
-        self.memfile.seek(0)
-        mixer.music.load(self.memfile)
+        self.memfile, self.midi_file, self.length_of_file = self.son_func.write_midifile(self.bpm, self.program, self.duration, self.midi_data, self.t_data, self.vel_data)        
         
-        #I have to create an entirely new memfile in order to...wait for it...measure the audio length!
-        self.memfile_mido = BytesIO()
-        midi_file.writeFile(self.memfile_mido)
-        self.memfile_mido.seek(0)
-        mid = MidiFile(file=self.memfile_mido)
-        self.length_of_file = mid.length #-self.duration     
-       
-        mixer.music.play()
+        self.play_sound(self.memfile)
         self.sweep_line()
-        
-        self.midi_file = midi_file   #will need for saving as .wav file
-        
+                
     def midi_singlenote(self,event):
-        #the setup for playing *just* one note...using the bar technique. :-)
-        self.memfile = BytesIO()   #create working memory file (allows me to play the note without saving the file...yay!)
-        
-        midi_file = MIDIFile(1) #one track
-        midi_file.addTrackName(0,0,'Note')
-        midi_file.addTempo(track=0, time=0, tempo=self.bpm)
-        midi_file.addProgramChange(tracknum=0, channel=0, time=0, program=self.program)
-        
+
         #for the instance where there is no rotation
         if self.rec_func.angle == 0:
-
-            self.find_closest_mean(self.mean_list)    #determine the index at which the mean_list element    
-                                                      #is closest to the current bar mean outputs 
-                                                      #self.closest_mean_index
+            #determine the index at which the mean_list element is closest to the current bar mean outputs
+            self.find_closest_mean(self.mean_list)  
         else:
             self.find_closest_mean(self.mean_list)
-            
-        #extract the midi and velocity notes associated with that index. 
-        single_pitch = self.midi_data[self.closest_mean_index]
-        single_volume = self.vel_data[self.closest_mean_index]
-        
-        midi_file.addNote(track=0, channel=0, pitch=single_pitch, time=self.t_data[1], duration=1, volume=single_volume)   #isolate the one note corresponding to the click event, add to midi file; the +1 is to account for the silly python notation conventions
-        
-        midi_file.writeFile(self.memfile)
-        #with open(homedir+'/Desktop/test.mid',"wb") as f:
-        #    self.midi_file.writeFile(f)
 
-        mixer.init()
-        self.memfile.seek(0)   #for whatever reason, have to manually 'rewind' the track in order for mixer to play
-        mixer.music.load(self.memfile)
-        mixer.music.play()       
+        self.memfile = self.son_func.single_note_midi(self.closest_mean_index)
+        
+        self.son_func.play_sound(self.memfile)       
     
     def save_sound(self):
         
@@ -904,11 +844,12 @@ class MainPage(tk.Frame):
             
             fs.midi_to_audio(midi_savename, wav_savename) 
             
-            self.download_success()   #play the jingle
+            self.son_func.download_success()   #play the jingle
             
-            self.time = self.get_wav_length(wav_savename)   #length of soundfile
+            self.time = self.length_of_file
             
             self.wav_savename = wav_savename   #need for creating .mp4
+            os.system(f'rm {midi_savename}')
             
         #if user has not yet clicked "Sonify", then clicking button will activate a popup message
         else:
@@ -918,11 +859,6 @@ class MainPage(tk.Frame):
     #########################
     ###ANIMATION FUNCTIONS###
     #########################
-    
-    def get_wav_length(self,file):
-        wav_length = mixer.Sound(file).get_length() - 3   #there seems to be ~3 seconds of silence at the end of each file, so the "-3" trims this lardy bit. 
-        print(f'File Length (seconds): {mixer.Sound(file).get_length()}')
-        return wav_length
 
     def sweep_line(self):
         
@@ -978,7 +914,7 @@ class MainPage(tk.Frame):
         i = self.xvals_anim[num]
         line1.set_data([i, i], [self.ymin_anim-5, self.ymax_anim+5])
         
-        xvals_alt = self.map_value(self.xvals_anim,0,np.max(self.xvals_anim),0,len(self.all_line_coords)-1)
+        xvals_alt = self.son_func.map_value(self.xvals_anim,0,np.max(self.xvals_anim),0,len(self.all_line_coords)-1)
         i_alt = int(xvals_alt[num])
 
         line_xdat, line_ydat = map(list, zip(*self.all_line_coords[i_alt]))
@@ -1048,17 +984,9 @@ class MainPage(tk.Frame):
         #os.system('rm /Users/k215c316/Desktop/test.mp4')
         #ffmpeg.output(input_video.video, input_audio.audio, '/Users/k215c316/Desktop/test.mp4',codec='copy').run(quiet=True)
                   
-        self.download_success()
+        self.son_func.download_success()
         
         self.textbox = 'Done! Check the saved_mp4file directory for the final product.'
         self.popup()
-    
-    #when file(s) are finished downloading, there will be a ding sound indicating completion. it's fun.
-    def download_success(self):
-        path = os.getcwd()+'/success.mp3'
-        mixer.init()
-        mixer.music.set_volume(0.25)
-        mixer.music.load(path)
-        mixer.music.play()
-    
+
  #I should ALSO record a video tutorial on how to operate this doohickey.
