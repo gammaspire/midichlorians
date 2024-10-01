@@ -208,11 +208,11 @@ class sono_defs():
         input_video = ffmpeg.input(ani_savename)
         input_audio = ffmpeg.input(self.wav_savename)
         
-        #ffmpeg.output(input_video.video,input_audio.audio,ani_both_savename,codec='copy').run(quiet=True)
+        ffmpeg.output(input_video.video,input_audio.audio,ani_both_savename,codec='copy').run(quiet=True)
         
         #for testing purposes (easy access), save concatenated file to Desktop
-        os.system('rm /Users/k215c316/Desktop/test.mp4')
-        ffmpeg.output(input_video.video, input_audio.audio, '/Users/k215c316/Desktop/test.mp4',codec='copy').run(quiet=True)
+        #os.system('rm /Users/k215c316/Desktop/test.mp4')
+        #ffmpeg.output(input_video.video, input_audio.audio, '/Users/k215c316/Desktop/test.mp4',codec='copy').run(quiet=True)
                   
         self.download_success()
         
