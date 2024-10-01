@@ -13,7 +13,7 @@ import matplotlib.animation as animation
 from matplotlib import figure
 
 import numpy as np
-psyduck 
+
 class sono_defs():
     
     def __init__(self, soundfont):

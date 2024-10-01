@@ -14,15 +14,12 @@ import matplotlib.animation as animation
 from matplotlib import figure              #see self.fig, self.ax.
 
 from scipy.stats import scoreatpercentile
-from scipy import spatial
 from astropy.visualization import simple_norm
 from astropy.io import fits
 from tkinter import font as tkFont
 from tkinter import messagebox
 from tkinter import filedialog
 import glob
-
-#from mido import MidiFile
 
 from rectangle_functions import rectangle
 from sono_functions import sono_defs
@@ -44,7 +41,7 @@ class MainPage(tk.Frame):
         #summon the RECTANGLE FUNCTIONS! (see rectangle_functions.py for further information)
         self.rec_func = rectangle()
         
-        #summon the SONIFICATION FUNCTIONS! (see son_functions.py for further information)
+        #summon the SONIFICATION FUNCTIONS! (see sono_functions.py for further information)
         self.son_func = sono_defs(soundfont=self.soundfont)
         
         #initiating variables for the self.drawSq function
@@ -54,12 +51,6 @@ class MainPage(tk.Frame):
         self.y1=None
         self.y2=None
         self.rec_func.angle=0
-        
-        #initiate a counter to ensure that files do not overwrite one another for an individual galaxy
-        #note: NEEDED FOR THE SAVE WIDGET
-        self.namecounter=0
-        self.namecounter_ani=0
-        self.namecounter_ani_both=0
                 
         #dictionary for different key signatures
         self.note_dict = self.son_func.note_dict
@@ -127,9 +118,9 @@ class MainPage(tk.Frame):
         
         self.galaxy_to_display()
         
-        '''
-        INSERT INITIATION FUNCTIONS TO RUN BELOW.
-        '''
+        ##############################################
+        ###INSERT INITIATION FUNCTIONS TO RUN HERE###
+        ##############################################
         self.initiate_vals()
         self.add_info_button()
         self.populate_soni_widget()
@@ -137,6 +128,8 @@ class MainPage(tk.Frame):
         self.populate_save_widget()
         self.init_display_size()
         self.populate_editcanvas_widget()
+        
+        
     
     def populate_box_widget(self):
         self.angle_box = tk.Entry(self.frame_box, width=15, borderwidth=2, bg='black', fg='lime green',
@@ -478,27 +471,11 @@ class MainPage(tk.Frame):
         
         text.insert(tk.END, self.textbox_info)
     
-    #it may not be the most efficient function, as it calculates the distances between every line coordinate and the given (x,y); however, I am not clever enough to conjure up an alternative solution presently.
-    def find_closest_bar(self):
-        
-        #initiate distances list --> for a given (x,y), which point in every line in self.all_line_coords
-        #is closest to (x,y)? this distance will be placed in the distances list.
-        self.distances=[]
-        
-        coord=(self.x,self.y)
-        
-        for line in self.all_line_coords:
-            tree = spatial.KDTree(line)
-            result=tree.query([coord])
-            self.distances.append(result[0])
-        
-        self.closest_line_index = np.where(np.asarray(self.distances)==np.min(self.distances))[0][0]
-    
-    #from the list of means, find the index at which the element is closest in value to the given mean pixel
-    def find_closest_mean(self,meanlist):
-        #from https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
-        self.closest_mean_index = np.where(np.asarray(meanlist) == min(meanlist, key=lambda x:abs(x-float(self.mean_px))))[0][0]     
-    
+
+    #######################
+    #####PLOTTING BARS#####
+    #######################    
+            
     #plot the bar for the click event!
     def placeBar(self, event):  
         
@@ -538,7 +515,6 @@ class MainPage(tk.Frame):
                 n_pixels = int(self.ymax-self.ymin)   #number of pixels between ymin and ymax
                 line_x = np.zeros(n_pixels)+int(self.x)
                 line_y = np.linspace(self.ymin,self.ymax,n_pixels)       
-                self.current_bar, = self.ax.plot(line_x,line_y,linewidth=3,color='red')
 
                 #extract the mean pixel value from this bar
                 value_list = np.zeros(n_pixels)
@@ -546,13 +522,12 @@ class MainPage(tk.Frame):
                     y_coord = line_y[index]
                     px_value = self.dat[int(y_coord)][int(self.x)]   #x will be the same...again, by design.
                     value_list[index] = px_value
-                mean_px = '{:.2f}'.format(np.mean(value_list))
-                self.val.config(text=f'Mean Pixel Value: {mean_px}',font='Ariel 18')
-                self.canvas.draw()      
+                self.mean_px = '{:.2f}'.format(np.mean(value_list))
+                self.val.config(text=f'Mean Pixel Value: {self.mean_px}',font='Ariel 18')
             
             else:
                 
-                self.find_closest_bar()   #outputs self.closest_line_index
+                self.closest_line_index = self.rec_func.find_closest_bar(self.x, self.y)
                 
                 line_mean = self.mean_list[self.closest_line_index]
                 line_coords = self.all_line_coords[self.closest_line_index]
@@ -560,20 +535,21 @@ class MainPage(tk.Frame):
                 line_xvals = np.asarray(line_coords)[:,0]
                 line_yvals = np.asarray(line_coords)[:,1]
                 
-                self.current_bar, = self.ax.plot([line_xvals[0],line_xvals[-1]],[line_yvals[0],line_yvals[-1]],
-                                                linewidth=3,color='red')
+                line_x = [line_xvals[0],line_xvals[-1]]
+                line_y = [line_yvals[0],line_yvals[-1]]
 
                 #extract the mean pixel value from this bar
-                mean_px = '{:.2f}'.format(line_mean)
+                self.mean_px = '{:.2f}'.format(line_mean)
 
-                self.val.config(text=f'Mean Pixel Value: {mean_px}',font='Ariel 16')
-                self.canvas.draw()
-            
-            self.mean_px = mean_px
-                                           
+                self.val.config(text=f'Mean Pixel Value: {self.mean_px}',font='Ariel 16')
+        
+            self.current_bar, = self.ax.plot(line_x,line_y,linewidth=3,color='red')
+            self.canvas.draw()
+        
         else:
             print('Keep inside of the bounds of either the rectangle or the image!')
-            self.val.config(text='Mean Pixel Value: None', font='Ariel 16')             
+            self.val.config(text='Mean Pixel Value: None', font='Ariel 16')
+
             
     #########################
     ###PLOTTING RECTANGLES###
@@ -666,6 +642,7 @@ class MainPage(tk.Frame):
                 dot = self.ax.scatter(self.x1,self.y1,color='crimson',s=10,marker='*')
                 self.sq_mean_value = self.dat[int(self.x1),int(self.y1)]
                 self.canvas.draw()
+                
                 #for whatever reason, placing dot.remove() here will delete the dot after the second click
                 dot.remove()
         
@@ -676,6 +653,7 @@ class MainPage(tk.Frame):
             #assign all event coordinates to an array
             self.event_bounds = [self.x1.copy(),self.y1.copy(),self.x2.copy(),self.y2.copy()]
             
+            #if click event is in bounds, then draw the rectangle!
             if event.inaxes:
                 if (self.bound_check):
                     self.create_rectangle(x_one=self.x1,x_two=self.x2,y_one=self.y1,y_two=self.y2)
@@ -799,11 +777,11 @@ class MainPage(tk.Frame):
         #for the instance where there is no rotation
         if self.rec_func.angle == 0:
             #determine the index at which the mean_list element is closest to the current bar mean outputs
-            self.find_closest_mean(self.mean_list)  
+            self.rec_func.find_closest_mean(self.mean_list, self.mean_px)  
         else:
-            self.find_closest_mean(self.mean_list)
+            self.rec_func.find_closest_mean(self.mean_list, self.mean_px)
 
-        self.memfile = self.son_func.single_note_midi(self.closest_mean_index)
+        self.memfile = self.son_func.single_note_midi(self.rec_func.closest_mean_index)
         
         self.son_func.play_sound(self.memfile)       
     

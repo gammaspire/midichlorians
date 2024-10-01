@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import spatial
 
 class rectangle():
     
@@ -128,7 +129,8 @@ class rectangle():
             self.xmax=im_length
             self.ymin = int(im_length/2-(0.20*im_length))
             self.ymax = int(im_length/2+(0.20*im_length))
-        
+     
+    
     #generates lists of line/bar values, means, AND line pixel coordinates. sehr wichtig.
     def get_line_vals(self, dat, event_bounds):
         
@@ -157,6 +159,7 @@ class rectangle():
         elif self.angle != 0:
             self.RecRot(dat, event_bounds)
             self.mean_strip_values = self.mean_list
+    
     
     #function which outputs rotated coordinate values
     def RecRot(self,dat,event_bounds):
@@ -231,3 +234,28 @@ class rectangle():
         if first_x<second_x:
             self.all_line_coords.sort()
             self.mean_list.reverse()
+            
+            
+    #it may not be the most efficient function, as it calculates the distances between every line coordinate and the given (x,y); however, I am not clever enough to conjure up an alternative solution presently.
+    def find_closest_bar(self, x_coord, y_coord):
+        
+        #initiate distances list --> for a given (x,y), which point in every line in self.all_line_coords
+        #is closest to (x,y)? this distance will be placed in the distances list.
+        self.distances=[]
+        
+        coord=(x_coord, y_coord)
+        
+        for line in self.all_line_coords:
+            tree = spatial.KDTree(line)
+            result=tree.query([coord])
+            self.distances.append(result[0])
+        
+        self.closest_line_index = np.where(np.asarray(self.distances)==np.min(self.distances))[0][0]
+        return self.closest_line_index
+    
+    
+    #from the list of means, find the index at which the element is closest in value to the given mean pixel
+    def find_closest_mean(self,meanlist,input_mean_px):
+        #https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
+        self.closest_mean_index = np.where(np.asarray(meanlist) == min(meanlist, key=lambda x:abs(x-float(input_mean_px))))[0][0]     
+        
