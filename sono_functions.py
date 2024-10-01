@@ -13,9 +13,7 @@ import matplotlib.animation as animation
 from matplotlib import figure
 
 import numpy as np
-
-
-
+psyduck 
 class sono_defs():
     
     def __init__(self, soundfont):
@@ -40,11 +38,13 @@ class sono_defs():
            'Bb Major': 'Bb1-C2-D2-Eb2-F2-G2-A2-Bb2-C3-D3-Eb3-F3-G3-A3-Bb3-C4-D4-Eb4-F4-G4-A4-Bb4-C5-D5-Eb5-F5-G5-A5',
            'F Major': 'F2-G2-A2-Bb2-C3-D3-E3-F3-G3-A3-Bb3-C4-D4-E4-F4-G4-A4-Bb4-C5-D5-E5-F5-G5-A5-Bb5-C6-D6-E6', 
         }
-        
+    
+    
     #typical sonification mapping function; maps value(s) from one range to another range; returns floats
     def map_value(self, value, min_value, max_value, min_result, max_result):
         result = min_result + (value - min_value)/(max_value - min_value)*(max_result - min_result)
         return result
+    
     
     def write_midifile(self, bpm, program, duration, midi_data, t_data, vel_data):
         
@@ -75,6 +75,7 @@ class sono_defs():
 
         return self.memfile, midi_file, self.length_of_file
     
+    
     def single_note_midi(self, closest_mean_index):
     
         #the setup for playing *just* one note...using the bar technique. :-)
@@ -97,6 +98,7 @@ class sono_defs():
         
         return self.memfile  
     
+    
     def play_sound(self, memfile):
         
         mixer.init()
@@ -105,6 +107,7 @@ class sono_defs():
         mixer.music.load(memfile)
         mixer.music.play()
     
+    
     #when file(s) are finished downloading, there will be a ding sound indicating completion. it's fun.
     def download_success(self):
         path = os.getcwd()+'/success.mp3'
@@ -112,11 +115,13 @@ class sono_defs():
         mixer.music.set_volume(0.25)
         mixer.music.load(path)
         mixer.music.play()
-        
+    
+    
     def get_wav_length(self,file):
         wav_length = mixer.Sound(file).get_length() - 3   #there seems to be ~3 seconds of silence at the end of each file, so the "-3" trims this lardy bit. 
         print(f'File Length (seconds): {mixer.Sound(file).get_length()}')
         return wav_length
+    
     
     def save_sound(self, midi_savename, wav_savename, midi_file):
 
@@ -143,7 +148,6 @@ class sono_defs():
         os.system(f'rm {midi_savename}')
         
         
-    
     def update_line_one(self,num,line1,line2):
 
         i = self.xvals_anim[num]
@@ -158,6 +162,7 @@ class sono_defs():
         line2.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
         
         return line1, line2,
+    
     
     def create_midi_animation(self, all_line_coords, ani_savename_unf, norm_im2, dat,
                              xmin, xmax, ymin, ymax, galaxy_name, band):
