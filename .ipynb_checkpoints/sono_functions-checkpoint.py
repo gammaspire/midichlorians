@@ -1,9 +1,19 @@
 import os
 from io import BytesIO
+
 from mido import MidiFile
 from midiutil import MIDIFile
+from midi2audio import FluidSynth
 
 from pygame import mixer
+
+import ffmpeg
+
+import matplotlib.animation as animation
+from matplotlib import figure
+
+import numpy as np
+
 
 
 class sono_defs():
@@ -11,6 +21,9 @@ class sono_defs():
     def __init__(self, soundfont):
         
         self.soundfont = soundfont
+        self.namecounter = 0
+        self.namecounter_ani = 0
+        self.namecounter_ani_both = 0
         
         self.note_dict = {
            'C Major': 'C2-D2-E2-F2-G2-A2-B2-C3-D3-E3-F3-G3-A3-B3-C4-D4-E4-F4-G4-A4-B4-C5-D5-E5-F5-G5-A5-B5',
@@ -58,9 +71,9 @@ class sono_defs():
         midi_file.writeFile(memfile_mido)
         memfile_mido.seek(0)
         mid = MidiFile(file=memfile_mido)
-        length_of_file = mid.length #-self.duration
+        self.length_of_file = mid.length #-self.duration
 
-        return self.memfile, midi_file, length_of_file
+        return self.memfile, midi_file, self.length_of_file
     
     def single_note_midi(self, closest_mean_index):
     
@@ -104,3 +117,103 @@ class sono_defs():
         wav_length = mixer.Sound(file).get_length() - 3   #there seems to be ~3 seconds of silence at the end of each file, so the "-3" trims this lardy bit. 
         print(f'File Length (seconds): {mixer.Sound(file).get_length()}')
         return wav_length
+    
+    def save_sound(self, midi_savename, wav_savename, midi_file):
+
+        #write file
+        with open(midi_savename,"wb") as f:
+            midi_file.writeFile(f)
+
+        #initiate FluidSynth class!
+        #gain governs the volume of wavefile. I needed to tweak the source code of midi2audio to 
+        #have the gain argument --> check my github wiki for instructions. :-)
+        fs = FluidSynth(sound_font=self.soundfont, gain=3)   
+
+        while os.path.exists('{}{:d}.wav'.format(wav_savename, self.namecounter)):
+            self.namecounter += 1
+        wav_savename = '{}{:d}.wav'.format(wav_savename,self.namecounter)
+
+        fs.midi_to_audio(midi_savename, wav_savename) 
+
+        self.download_success()   #play the jingle
+
+        self.time = self.length_of_file
+
+        self.wav_savename = wav_savename   #need for creating .mp4
+        os.system(f'rm {midi_savename}')
+        
+        
+    
+    def update_line_one(self,num,line1,line2):
+
+        i = self.xvals_anim[num]
+        line1.set_data([i, i], [self.ymin_anim-5, self.ymax_anim+5])
+        
+        xvals_alt = self.map_value(self.xvals_anim, 
+                                    0, np.max(self.xvals_anim), 
+                                    0, len(self.all_line_coords)-1)
+        i_alt = int(xvals_alt[num])
+
+        line_xdat, line_ydat = map(list, zip(*self.all_line_coords[i_alt]))
+        line2.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
+        
+        return line1, line2,
+    
+    def create_midi_animation(self, all_line_coords, ani_savename_unf, norm_im2, dat,
+                             xmin, xmax, ymin, ymax, galaxy_name, band):
+ 
+        self.all_line_coords = all_line_coords
+        
+        while os.path.exists('{}{:d}.mp4'.format(ani_savename_unf, self.namecounter_ani)):
+            self.namecounter_ani += 1
+        ani_savename = '{}{:d}.mp4'.format(ani_savename_unf,self.namecounter_ani)    
+        
+        fig = figure.Figure(layout='constrained')
+        spec=fig.add_gridspec(2,1)
+        ax1 = fig.add_subplot(spec[0,:])
+        ax2 = fig.add_subplot(spec[1,0])
+        
+        ax2.imshow(dat, origin='lower', norm=norm_im2, cmap='gray', alpha=0.9)
+        line2, = ax2.plot([],[],lw=1)
+        l2,v = ax2.plot(xmin, ymin, xmax, ymax, lw=2, color='red')
+
+        self.xmin_anim = 0
+        self.xmax_anim = np.max(self.t_data)
+        self.ymin_anim = int(np.min(self.midi_data))
+        self.ymax_anim = int(np.max(self.midi_data))
+
+        self.xvals_anim = np.arange(0, self.xmax_anim+1, 0.05)   #possible x-values for each pixel line, increments of 0.05 (which are close enough that the bar appears to move continuously)
+
+        ax1.scatter(self.t_data, self.midi_data, self.vel_data, alpha=0.5, edgecolors='black')
+        line, = ax1.plot([], [], lw=2)
+        l1,v = ax1.plot(self.xmin_anim, self.ymin_anim, self.xmax_anim, self.ymax_anim, lw=2, color='red')
+                
+        ax1.set_xlabel('Time interval (s)', fontsize=12)
+        ax1.set_ylabel('MIDI note', fontsize=12)
+        fig.suptitle(galaxy_name,fontsize=15)
+        
+        line_anim = animation.FuncAnimation(fig, self.update_line_one, frames=len(self.xvals_anim), fargs=(l1,l2,), blit=True)
+
+        FFWriter = animation.FFMpegWriter()
+        line_anim.save(ani_savename,fps=len(self.xvals_anim)/self.time)      
+        
+        del fig     #I am finished with the figure, so I shall delete references to the figure.
+        
+        ani_both_savename_unf = ani_savename_unf+'concat'
+        
+        while os.path.exists('{}{:d}.mp4'.format(ani_both_savename_unf, self.namecounter_ani_both)):
+            self.namecounter_ani_both += 1
+        ani_both_savename = '{}{:d}.mp4'.format(ani_both_savename_unf,self.namecounter_ani_both)
+        
+        input_video = ffmpeg.input(ani_savename)
+        input_audio = ffmpeg.input(self.wav_savename)
+        
+        #ffmpeg.output(input_video.video,input_audio.audio,ani_both_savename,codec='copy').run(quiet=True)
+        
+        #for testing purposes (easy access), save concatenated file to Desktop
+        os.system('rm /Users/k215c316/Desktop/test.mp4')
+        ffmpeg.output(input_video.video, input_audio.audio, '/Users/k215c316/Desktop/test.mp4',codec='copy').run(quiet=True)
+                  
+        self.download_success()
+        
+        os.system(f'rm {ani_savename}') #remove audioless .mp4 file

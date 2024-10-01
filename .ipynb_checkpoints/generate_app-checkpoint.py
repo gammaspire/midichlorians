@@ -1,8 +1,5 @@
 #all of the main interaction functions/widgets for the GUI window
 
-import ffmpeg
-from midi2audio import FluidSynth
-from midiutil import MIDIFile
 from audiolazy import str2midi
 from pygame import mixer                    #this library is what causes the loading delay methinks
 
@@ -12,10 +9,8 @@ import os
 
 import matplotlib                          #I need this for matplotlib.use. sowwee.
 matplotlib.use('TkAgg')    
-
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.animation as animation
-
 from matplotlib import figure              #see self.fig, self.ax.
 
 from scipy.stats import scoreatpercentile
@@ -27,8 +22,7 @@ from tkinter import messagebox
 from tkinter import filedialog
 import glob
 
-from io import BytesIO
-from mido import MidiFile
+#from mido import MidiFile
 
 from rectangle_functions import rectangle
 from sono_functions import sono_defs
@@ -50,7 +44,7 @@ class MainPage(tk.Frame):
         #summon the RECTANGLE FUNCTIONS! (see rectangle_functions.py for further information)
         self.rec_func = rectangle()
         
-        #summon the SONIFICATION FUNCTIONS! (see sono_functions.py for further information)
+        #summon the SONIFICATION FUNCTIONS! (see son_functions.py for further information)
         self.son_func = sono_defs(soundfont=self.soundfont)
         
         #initiating variables for the self.drawSq function
@@ -315,7 +309,7 @@ class MainPage(tk.Frame):
     
     def add_saveani_button(self):
         self.saveani_button = tk.Button(self.frame_save, text='Save as MP4', padx=15, pady=10, font='Ariel 20',
-                                        command=self.create_midi_animation)
+                                        command=self.save_midi_animation)
         self.saveani_button.grid(row=0,column=1)
     
     def add_browse_button(self):
@@ -743,7 +737,7 @@ class MainPage(tk.Frame):
         print(selected_sig)
         #print(self.note_names)
         
-        #using recctangle_functions.py to extract min and max coordinates from the two click events
+        #using rectangle_functions.py to extract min and max coordinates from the two click events
         self.rec_func.get_minmax(self.event_bounds, self.im_length)
         self.xmin = self.rec_func.xmin
         self.xmax = self.rec_func.xmax
@@ -797,7 +791,7 @@ class MainPage(tk.Frame):
 
         self.memfile, self.midi_file, self.length_of_file = self.son_func.write_midifile(self.bpm, self.program, self.duration, self.midi_data, self.t_data, self.vel_data)        
         
-        self.play_sound(self.memfile)
+        self.son_func.play_sound(self.memfile)
         self.sweep_line()
                 
     def midi_singlenote(self,event):
@@ -824,41 +818,39 @@ class MainPage(tk.Frame):
             
             midi_savename = self.path_to_repos+'saved_wavfiles/'+str(self.galaxy_name)+'-'+str(self.band)+'.mid'   #using our current file conventions to define self.galaxy_name (see relevant line for further details); will save file to saved_wavfile directory
             
-            #write file
-            with open(midi_savename,"wb") as f:
-                self.midi_file.writeFile(f)
+            wav_savename = f'{self.path_to_repos}saved_wavfiles/{self.galaxy_name}-{self.band}-'
             
-            wav_savename = self.path_to_repos+'saved_wavfiles/'+str(self.galaxy_name)+'-'+str(self.band)+'.wav'   
+            self.son_func.save_sound(midi_savename, wav_savename, self.midi_file)
             
-            #initiate FluidSynth class!
-            #gain governs the volume of wavefile. I needed to tweak the source code of midi2audio to 
-            #have the gain argument --> I'll give instructions somewhere for how to do so...
-            #check my github wiki. :-)
-            fs = FluidSynth(sound_font=self.soundfont, gain=3)   
-            
-            if os.path.isfile(wav_savename):    
-                self.namecounter+=1
-                wav_savename = self.path_to_repos+'saved_wavfiles/'+str(self.galaxy_name)+'-'+str(self.band)+'-'+str(self.namecounter)+'.wav'                
-            else:
-                self.namecounter=0
-            
-            fs.midi_to_audio(midi_savename, wav_savename) 
-            
-            self.son_func.download_success()   #play the jingle
-            
-            self.time = self.length_of_file
-            
-            self.wav_savename = wav_savename   #need for creating .mp4
-            os.system(f'rm {midi_savename}')
+            #self.time = self.son_func.time
+            #self.wav_savename = self.son_func.wav_savename   #need for creating .mp4
             
         #if user has not yet clicked "Sonify", then clicking button will activate a popup message
         else:
             self.textbox = 'Do not try to save an empty .wav file! Create a rectangle on the image canvas then click "Sonify" to generate MIDI notes.'
             self.popup()
     
-    #########################
-    ###ANIMATION FUNCTIONS###
-    #########################
+    def save_midi_animation(self):
+        
+        self.save_sound()
+        
+        v1_2 = float(self.v1slider.get())
+        v2_2 = float(self.v2slider.get())
+        norm_im2 = simple_norm(self.dat*self.mask_bool,'asinh', min_percent=0.5, max_percent=99.9, min_cut=v1_2, max_cut=v2_2) 
+        
+        ani_savename = f'{self.path_to_repos}saved_mp4files/{self.galaxy_name}-{self.band}-'
+        
+        self.son_func.create_midi_animation(self.all_line_coords, ani_savename, norm_im2, 
+                              self.dat,self.xmin, self.xmax, self.ymin, self.ymax, 
+                              self.galaxy_name, self.band)
+        
+        self.textbox = 'Done! Check the saved_mp4file directory for the final product.'
+        self.popup()
+    
+    
+    #############################
+    ###GUI ANIMATION FUNCTIONS###
+    #############################
 
     def sweep_line(self):
         
@@ -867,19 +859,7 @@ class MainPage(tk.Frame):
             self.current_bar.remove()
         except:
             pass
-        
-        def update_line(num, line):
-            current_pos = mixer.music.get_pos()   #milliseconds
 
-            current_time_sec = current_pos / 1e3   #seconds
-
-            # Find the index corresponding to the current time
-            frame = min(int((current_time_sec / (self.length_of_file-self.duration)) * len(self.t_data)), len(self.t_data) - 1)
-            
-            line_xdat, line_ydat = map(list, zip(*self.all_line_coords[frame]))
-            line.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
-            return line,
-        
         line, = self.ax.plot([], [], lw=1)
         
         self.l,v = self.ax.plot(self.xmin, self.ymin, self.xmax, self.ymax, lw=2, color='red')
@@ -908,85 +888,3 @@ class MainPage(tk.Frame):
         line_xdat, line_ydat = map(list, zip(*self.all_line_coords[frame]))
         line.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
         return line,
-    
-    def update_line_one(self,num,line1,line2):
-
-        i = self.xvals_anim[num]
-        line1.set_data([i, i], [self.ymin_anim-5, self.ymax_anim+5])
-        
-        xvals_alt = self.son_func.map_value(self.xvals_anim,0,np.max(self.xvals_anim),0,len(self.all_line_coords)-1)
-        i_alt = int(xvals_alt[num])
-
-        line_xdat, line_ydat = map(list, zip(*self.all_line_coords[i_alt]))
-        line2.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
-        
-        return line1, line2,
-    
-    
-    def create_midi_animation(self):
-        
-        self.save_sound()
-        
-        ani_savename = self.path_to_repos+'saved_mp4files/'+str(self.galaxy_name)+'-'+str(self.band)+'.mp4'   #using our current file conventions to define self.galaxy_name (see relevant line for further details); will save file to saved_mp4files directory
-            
-        while os.path.exists('{}{:d}.mp4'.format(ani_savename, self.namecounter_ani)):
-            self.namecounter_ani += 1
-        filename = '{}{:d}.mp4'.format(ani_savename,self.namecounter_ani)    
-            
-        
-        fig = figure.Figure(layout='constrained')
-        spec=fig.add_gridspec(2,1)
-        ax1 = fig.add_subplot(spec[0,:])
-        ax2 = fig.add_subplot(spec[1,0])
-        
-        v1_2 = float(self.v1slider.get())
-        v2_2 = float(self.v2slider.get())
-        norm_im2 = simple_norm(self.dat*self.mask_bool,'asinh', min_percent=0.5, max_percent=99.9, min_cut=v1_2, max_cut=v2_2) 
-        
-        ax2.imshow(self.dat, origin='lower', norm=norm_im2, cmap='gray', alpha=0.9)
-        line2, = ax2.plot([],[],lw=1)
-        l2,v = ax2.plot(self.xmin, self.ymin, self.xmax, self.ymax, lw=2, color='red')
-
-        self.xmin_anim = 0
-        self.xmax_anim = np.max(self.t_data)
-        self.ymin_anim = int(np.min(self.midi_data))
-        self.ymax_anim = int(np.max(self.midi_data))
-
-        self.xvals_anim = np.arange(0, self.xmax_anim+1, 0.05)   #possible x-values for each pixel line, increments of 0.05 (which are close enough that the bar appears to move continuously)
-
-        ax1.scatter(self.t_data, self.midi_data, self.vel_data, alpha=0.5, edgecolors='black')
-        line, = ax1.plot([], [], lw=2)
-        l1,v = ax1.plot(self.xmin_anim, self.ymin_anim, self.xmax_anim, self.ymax_anim, lw=2, color='red')
-                
-        ax1.set_xlabel('Time interval (s)', fontsize=12)
-        ax1.set_ylabel('MIDI note', fontsize=12)
-        fig.suptitle(self.galaxy_name,fontsize=15)
-        
-        line_anim = animation.FuncAnimation(fig, self.update_line_one, frames=len(self.xvals_anim), fargs=(l1,l2,), blit=True)
-
-        FFWriter = animation.FFMpegWriter()
-        line_anim.save(ani_savename,fps=len(self.xvals_anim)/self.time)      
-        
-        del fig     #I am finished with the figure, so I shall delete references to the figure.
-        
-        ani_both_savename = self.path_to_repos+'saved_mp4files/'+str(self.galaxy_name)+'-'+str(self.band)+'-concat.mp4'
-        
-        while os.path.exists('{}{:d}.mp4'.format(ani_both_savename, self.namecounter_ani_both)):
-            self.namecounter_ani_both += 1
-        filename = '{}{:d}.mp4'.format(ani_both_savename,self.namecounter_ani_both)
-        
-        input_video = ffmpeg.input(ani_savename)
-        input_audio = ffmpeg.input(self.wav_savename)
-        
-        ffmpeg.output(input_video.video, input_audio.audio,ani_both_savename,codec='copy').run(quiet=True)
-        
-        #for testing purposes (easy access), save concatenated file to Desktop
-        #os.system('rm /Users/k215c316/Desktop/test.mp4')
-        #ffmpeg.output(input_video.video, input_audio.audio, '/Users/k215c316/Desktop/test.mp4',codec='copy').run(quiet=True)
-                  
-        self.son_func.download_success()
-        
-        self.textbox = 'Done! Check the saved_mp4file directory for the final product.'
-        self.popup()
-
- #I should ALSO record a video tutorial on how to operate this doohickey.
