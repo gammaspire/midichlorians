@@ -132,8 +132,13 @@ class sono_defs():
         #initiate FluidSynth class!
         #gain governs the volume of wavefile. I needed to tweak the source code of midi2audio to 
         #have the gain argument --> check my github wiki for instructions. :-)
-        fs = FluidSynth(sound_font=self.soundfont, gain=3)   
-
+        try:
+            fs = FluidSynth(sound_font=self.soundfont, gain=3)   
+        except:
+            fs = FluidSynth(sound_font=self.soundfont)
+            print('Is the volume of the saved WAV too soft? Consider editing the midi2audio source code!')
+            print('https://github.com/gammaspire/midichlorians/wiki/Getting-Started')
+        
         while os.path.exists('{}{:d}.wav'.format(wav_savename, self.namecounter)):
             self.namecounter += 1
         wav_savename = '{}{:d}.wav'.format(wav_savename,self.namecounter)
