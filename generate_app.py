@@ -554,7 +554,13 @@ class MainPage(tk.Frame):
     #########################
     ###PLOTTING RECTANGLES###
     #########################
-
+    
+    #function to reset angle, as indicated by the name.
+    def angle_reset(self):
+        self.rec_func.angle = 0
+        self.angle_box.delete(0,tk.END)
+        self.angle_box.insert(0,str(self.rec_func.angle))
+    
     def create_rectangle(self,x_one=None,x_two=None,y_one=None,y_two=None):
         
         #the "try" statement will only work if the user-input angle is a float (and not a string)
@@ -566,9 +572,7 @@ class MainPage(tk.Frame):
             if (self.rec_func.angle/90)%2 == 1:      #if 90, 270, etc., just approximate to be 89.9
                 self.rec_func.angle = 89.9
         except:
-            self.rec_func.angle = 0
-            self.angle_box.delete(0,tk.END)
-            self.angle_box.insert(0,str(self.rec_func.angle))
+            self.angle_reset()
             
         try:
             for line in [self.line_eins,self.line_zwei,self.line_drei,self.line_vier]:
@@ -602,7 +606,8 @@ class MainPage(tk.Frame):
             self.line_vier = self.ax.plot([x2,x4],[y2,y4],color='crimson')   #2--4
 
             self.canvas.draw()
-            
+    
+
     def drawSqRec(self, event):
         
         #remove animation line, if applicable
@@ -620,9 +625,7 @@ class MainPage(tk.Frame):
         try:
             self.rec_func.angle = float(self.angle_box.get())
         except:
-            self.rec_func.angle = 0
-            self.angle_box.delete(0,tk.END)
-            self.angle_box.insert(0,str(self.rec_func.angle))
+            self.angle_reset()
         
         #collect the x and y coordinates of the click event
         #if first click event already done, then just define x2, y2. otherwise, define x1, y1.
@@ -632,10 +635,13 @@ class MainPage(tk.Frame):
         else:
             self.x1 = event.xdata
             self.y1 = event.ydata
-            first_time=True
         
         #the user has clicked only the 'first' rectangle corner...
         if (self.x1 is not None) & (self.x2 is None):
+            
+            #reset the angle!
+            self.angle_reset()
+            
             #if the corner is within the canvas, plot a dot to mark this 'first' corner
             if event.inaxes:
                 self.bound_check=True
@@ -704,9 +710,7 @@ class MainPage(tk.Frame):
             if (self.rec_func.angle/90)%2 == 1:
                 self.rec_func.angle = 89.9
         except:
-            self.rec_func.angle = 0
-            self.angle_box.delete(0,tk.END)
-            self.angle_box.insert(0,str(self.rec_func.angle))
+            self.angle_reset()
         
         selected_sig = self.keyvar.get()
         self.note_names = self.note_dict[selected_sig]

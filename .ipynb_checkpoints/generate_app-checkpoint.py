@@ -632,10 +632,15 @@ class MainPage(tk.Frame):
         else:
             self.x1 = event.xdata
             self.y1 = event.ydata
-            first_time=True
         
         #the user has clicked only the 'first' rectangle corner...
         if (self.x1 is not None) & (self.x2 is None):
+            
+            #reset the angle!
+            self.angle = 0
+            self.angle_box.delete(0,tk.END)
+            self.angle_box.insert(0,str(self.angle))
+            
             #if the corner is within the canvas, plot a dot to mark this 'first' corner
             if event.inaxes:
                 self.bound_check=True
