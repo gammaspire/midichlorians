@@ -153,20 +153,19 @@ class sono_defs():
         os.system(f'rm {midi_savename}')
         
         
-    def update_line_one(self,num,line1,line2):
+    def update_line_one(self,num,point1a,line2):
 
-        i = self.xvals_anim[num]
-        line1.set_data([i, i], [self.ymin_anim-5, self.ymax_anim+5])
+        xvals = self.map_value(self.xvals_anim,0,np.max(self.xvals_anim),0,len(self.midi_data)-1)
+        i = int(xvals[num])
+        point1a.set_data(self.t_data[i],self.midi_data[i])
         
-        xvals_alt = self.map_value(self.xvals_anim, 
-                                    0, np.max(self.xvals_anim), 
-                                    0, len(self.all_line_coords)-1)
+        xvals_alt = self.map_value(self.xvals_anim,0,np.max(self.xvals_anim),0,len(self.all_line_coords)-1)
         i_alt = int(xvals_alt[num])
 
         line_xdat, line_ydat = map(list, zip(*self.all_line_coords[i_alt]))
         line2.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
         
-        return line1, line2,
+        return point1a, line2,
     
     
     def create_midi_animation(self, all_line_coords, ani_savename_unf, norm_im2, dat,
@@ -195,17 +194,18 @@ class sono_defs():
         self.xvals_anim = np.arange(0, self.xmax_anim+1, 0.05)   #possible x-values for each pixel line, increments of 0.05 (which are close enough that the bar appears to move continuously)
 
         ax1.scatter(self.t_data, self.midi_data, self.vel_data, alpha=0.5, edgecolors='black')
-        line, = ax1.plot([], [], lw=2)
-        l1,v = ax1.plot(self.xmin_anim, self.ymin_anim, self.xmax_anim, self.ymax_anim, lw=2, color='red')
+        
+        #initialize point
+        point1a, = ax1.plot([], [], 'ro', markersize=20, alpha=0.2)
                 
         ax1.set_xlabel('Time interval (s)', fontsize=12)
         ax1.set_ylabel('MIDI note', fontsize=12)
         fig.suptitle(galaxy_name,fontsize=15)
         
-        line_anim = animation.FuncAnimation(fig, self.update_line_one, frames=len(self.xvals_anim), fargs=(l1,l2,), blit=True)
+        line_anim = animation.FuncAnimation(fig, self.update_line_one, frames=len(self.xvals_anim), fargs=(point1a,l2,), blit=True)
 
         FFWriter = animation.FFMpegWriter()
-        line_anim.save(ani_savename,fps=len(self.xvals_anim)/self.time)      
+        line_anim.save(ani_savename,fps=(len(self.xvals_anim)+4)/self.time)      
         
         del fig     #I am finished with the figure, so I shall delete references to the figure.
         
@@ -227,3 +227,4 @@ class sono_defs():
         self.download_success()
         
         os.system(f'rm {ani_savename}') #remove audioless .mp4 file
+        os.system(f'rm {self.wav_savename}') #remove superfluous .wav file
