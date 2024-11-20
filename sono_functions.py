@@ -154,15 +154,12 @@ class sono_defs():
         
         
     def update_line_one(self,num,point1a,line2):
-
-        xvals = self.map_value(self.xvals_anim,0,np.max(self.xvals_anim),0,len(self.midi_data)-1)
-        i = int(xvals[num])
-        point1a.set_data(self.t_data[i],self.midi_data[i])
         
-        xvals_alt = self.map_value(self.xvals_anim,0,np.max(self.xvals_anim),0,len(self.all_line_coords)-1)
-        i_alt = int(xvals_alt[num])
-
-        line_xdat, line_ydat = map(list, zip(*self.all_line_coords[i_alt]))
+        xvals = self.xvals_anim
+        i = int(xvals[num])
+        
+        point1a.set_data(self.t_data[i],self.midi_data[i])
+        line_xdat, line_ydat = map(list, zip(*self.all_line_coords[i]))
         line2.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
         
         return point1a, line2,
@@ -189,10 +186,9 @@ class sono_defs():
         self.xmin_anim = 0
         self.xmax_anim = np.max(self.t_data)
         self.ymin_anim = int(np.min(self.midi_data))
-        self.ymax_anim = int(np.max(self.midi_data))
 
-        self.xvals_anim = np.arange(0, self.xmax_anim+1, 0.05)   #possible x-values for each pixel line, increments of 0.05 (which are close enough that the bar appears to move continuously)
-
+        self.xvals_anim = np.arange(0,len(self.midi_data),1)
+        
         ax1.scatter(self.t_data, self.midi_data, self.vel_data, alpha=0.5, edgecolors='black')
         
         #initialize point
@@ -205,7 +201,7 @@ class sono_defs():
         line_anim = animation.FuncAnimation(fig, self.update_line_one, frames=len(self.xvals_anim), fargs=(point1a,l2,), blit=True)
 
         FFWriter = animation.FFMpegWriter()
-        line_anim.save(ani_savename,fps=(len(self.xvals_anim)+4)/self.time)      
+        line_anim.save(ani_savename,fps=((len(self.xvals_anim))/self.time)+self.duration)
         
         del fig     #I am finished with the figure, so I shall delete references to the figure.
         
