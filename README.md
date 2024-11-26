@@ -1,4 +1,4 @@
-# MIDIchlorians
+# MIDI-chlorians
 [MIDI]-[C]onversion to [H]armonic [L]ullabies of [O]ur Nea[R]by [I]rradiant G[A]laxy [N]eighbor[S] <br>
 (If I don't create a wonky, near-nonsensical acronym for a title, am I even associated with astronomy?)
 
