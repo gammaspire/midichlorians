@@ -148,25 +148,32 @@ class MainPage(tk.Frame):
         self.line_check.grid(row=9,column=2,padx=1,pady=(3,1),sticky='e')
     
     def galaxy_to_display(self):
-        self.path_to_im = tk.Entry(self.frame_buttons, width=35, borderwidth=2, bg='black', fg='lime green', 
+        self.path_to_im = tk.Entry(self.frame_buttons, width=17, borderwidth=2, bg='black', fg='lime green', 
                                    font='Arial 20')
-        self.path_to_im.insert(0,'Type path/to/image.fits or click "Browse"')
-        self.path_to_im.grid(row=0,column=0,columnspan=2)
+        self.path_to_im.insert(0,'image/path.fits')
+        self.path_to_im.grid(row=0,column=0,columnspan=1)
+        
+        self.path_to_mask = tk.Entry(self.frame_buttons,width=17, borderwidth=2, bg='black',
+                                     fg='lime green', font='Arial 20')
+        self.path_to_mask.insert(0,'optional/mask.fits')
+        self.path_to_mask.grid(row=0,column=1,columnspan=1)
+        
         self.add_browse_button()
+        self.add_browse_mask_button()
         self.add_enter_button()
     
     def populate_editcanvas_widget(self,min_v=0, max_v=1, min_px=0, max_px=1):
         
-        self.v1slider = tk.Scale(self.frame_editcanvas, from_=min_px, to=max_px, orient=tk.HORIZONTAL,
-                                command=self.change_vvalues)
-        self.v2slider = tk.Scale(self.frame_editcanvas, from_=min_px, to=max_px, orient=tk.HORIZONTAL,
-                                command=self.change_vvalues)
+        #initiate v1, v2 sliders
+        self.initiate_v1v2()
+
+        #set up cmap dropdown menu
+        self.set_cmap_menu()
         
-        v1lab = tk.Label(self.frame_editcanvas,text='vmin').grid(row=0,column=0)
-        v2lab = tk.Label(self.frame_editcanvas,text='vmax').grid(row=1,column=0)
-        
-        self.v1slider.grid(row=0,column=1)
-        self.v2slider.grid(row=1,column=1)
+        #add showmask checkbox
+        self.add_showmask_check()
+
+    def set_cmap_menu(self):
         
         self.cmap_options = ['viridis', 'rainbow', 'plasma', 'spring', 
                              'Wistia', 'cool', 'gist_heat', 'winter', 
@@ -187,7 +194,26 @@ class MainPage(tk.Frame):
         self.reverse_cmap = tk.Checkbutton(self.frame_editcanvas,text='Invert Colorbar', onvalue=1, offvalue=0, 
                                            variable = self.cmaprev, font='Arial 15', command=self.reverse_cmap)
         self.reverse_cmap.grid(row=3,column=0,columnspan=2)
+    
+    def add_showmask_check(self):
+        self.showmask = tk.IntVar()
+        self.showmask_box = tk.Checkbutton(self.frame_editcanvas, text='Show/Hide Mask', 
+                                           font='Arial 15', onvalue=1, offvalue=0, variable=self.showmask,
+                                          command=self.add_mask)
+        self.showmask_box.grid(row=4, column=0, columnspan=2)
+    
+    def initiate_v1v2(self,min_v=0, max_v=1, min_px=0, max_px=1):
         
+        self.v1slider = tk.Scale(self.frame_editcanvas, from_=min_px, to=max_px, orient=tk.HORIZONTAL,
+                                command=self.change_vvalues)
+        self.v2slider = tk.Scale(self.frame_editcanvas, from_=min_px, to=max_px, orient=tk.HORIZONTAL,
+                                command=self.change_vvalues)
+        
+        v1lab = tk.Label(self.frame_editcanvas,text='vmin').grid(row=0,column=0)
+        v2lab = tk.Label(self.frame_editcanvas,text='vmax').grid(row=1,column=0)
+        
+        self.v1slider.grid(row=0,column=1)
+        self.v2slider.grid(row=1,column=1)
     
     def change_vvalues(self, value):
         min_val = float(self.v1slider.get())
@@ -195,6 +221,13 @@ class MainPage(tk.Frame):
         self.im.norm.autoscale([min_val, max_val])  #change vmin, vmax of self.im
         #self.im.set_clim(vmin=min_val, vmax=max_val)   #another way of doing exactly what I typed above.
         self.canvas.draw()   
+    
+    def add_mask(self):
+        if self.showmask.get()>0.:
+            self.im.set_data(self.dat)
+        else:
+            self.im.set_data(self.dat_for_display)
+        self.canvas.draw()
     
     #command to change color scheme of the image
     def change_cmap(self, value): 
@@ -306,13 +339,18 @@ class MainPage(tk.Frame):
         self.saveani_button.grid(row=0,column=1)
     
     def add_browse_button(self):
-        self.button_explore = tk.Button(self.frame_buttons ,text="Browse", padx=20, pady=10, font=self.helv20, 
-                                        command=self.browseFiles)
+        self.button_explore = tk.Button(self.frame_buttons, text="Browse Image", padx=10, pady=5, 
+                                        font=self.helv20, command=self.browseFiles)
         self.button_explore.grid(row=1,column=0)
         
+    def add_browse_mask_button(self):
+        self.button_mask_explore = tk.Button(self.frame_buttons, text="Browse Mask", padx=10, pady=5,
+                                             font=self.helv20, command=self.browseFilesMask)
+        self.button_mask_explore.grid(row=1,column=1)
+    
     def add_enter_button(self):
-        self.path_button = tk.Button(self.frame_buttons, text='Enter/Refresh Canvas', padx=20, pady=10, font=self.helv20,command=self.initiate_canvas)
-        self.path_button.grid(row=1,column=1)
+        self.path_button = tk.Button(self.frame_buttons, text='Load/Refresh Canvas', padx=15, pady=10, font=self.helv20,bg='gray',command=self.initiate_canvas)
+        self.path_button.grid(row=2,column=0,columnspan=2)
     
     def add_midi_button(self):
         self.midi_button = tk.Button(self.frame_sono, text='Sonify', padx=20, pady=10, font=self.helv20, 
@@ -351,12 +389,17 @@ class MainPage(tk.Frame):
         
     def initiate_canvas(self):
         
-        #delete any and all miscellany (galaxy image, squares, lines) from the canvas (created using 
-        #self.init_display_size())
-        self.label.delete('all')
-        self.ax.remove()
+        #I need to add a try...except statement here, in case a user accidentally clicks "Load/Refresh" without loading a galaxy first. If they do so THEN try to successfully load a galaxy, the GUI will break.
         
-        self.dat = fits.getdata(str(self.path_to_im.get()))
+        try:
+            #delete any and all miscellany (galaxy image, squares, lines) from the canvas (created using 
+            #self.init_display_size())
+            self.label.delete('all')
+            self.ax.remove()
+        except:
+            pass
+        
+        self.dat_for_display, self.dat_header = fits.getdata(str(self.path_to_im.get()), header=True)
         
         #many cutouts, especially those in the r-band, have pesky foreground stars and other artifacts, which will invariably dominate the display of the image stretch. one option is that I can grab the corresponding mask image for the galaxy and create a 'mask bool' of 0s and 1s, then multiply this by the image in order to dictate v1, v2, and the normalization *strictly* on the central galaxy pixel values. 
         
@@ -372,21 +415,21 @@ class MainPage(tk.Frame):
             galaxyband = ' '
         
         try:
-            if (galaxyband=='g') | (galaxyband=='r') | (galaxyband=='z'):
-                mask_path = glob.glob(self.initial_browsedir+galaxyname+'*'+'r-mask.fits')[0]
-            if (galaxyband=='W3') | (galaxyband=='W1'):
-                mask_path = glob.glob(self.initial_browsedir+galaxyname+'*'+'wise-mask.fits')[0]
-                
-            mask_image = fits.getdata(mask_path)
+            mask_image = fits.getdata(self.path_to_mask.get())
             self.mask_bool = ~(mask_image>0)
-        
         except:
-            self.mask_bool = np.zeros((len(self.dat),len(self.dat)))+1  #create a fully array of 1s, won't affect image
-            print('Mask image not found; proceeded with default v1, v2, and normalization values.')
+            self.mask_bool = np.zeros((len(self.dat_for_display),len(self.dat_for_display)))+1  #create a full array of 1s, won't affect image
+            print('Mask image not found or not same dimensions as image; proceeding with default v1, v2, and normalization values.') 
+            self.path_to_mask.delete(0,tk.END)
+            self.path_to_mask.insert(0,'No Mask Found!')
         
-        v1 = scoreatpercentile(self.dat*self.mask_bool,0.5)
-        v2 = scoreatpercentile(self.dat*self.mask_bool,99.9)
-        norm_im = simple_norm(self.dat*self.mask_bool,'asinh', min_percent=0.5, max_percent=99.9,
+        #apply mask to image...not that this will NOT affect the default display (which excludes the bool mask)
+        self.dat = self.dat_for_display*self.mask_bool
+        
+        #use masked image to determine default v1, v2 values
+        v1 = scoreatpercentile(self.dat,0.5)
+        v2 = scoreatpercentile(self.dat,99.9)
+        norm_im = simple_norm(self.dat,'asinh', min_percent=0.5, max_percent=99.9,
                               min_cut=v1, max_cut=v2)  #'beautify' the image
         
         self.v1slider.configure(from_=np.min(self.dat), to=np.max(self.dat))
@@ -397,7 +440,13 @@ class MainPage(tk.Frame):
         self.v2slider.set(v2)
 
         self.ax = self.fig.add_subplot()
-        self.im = self.ax.imshow(self.dat,origin='lower',norm=norm_im)
+        
+        #if checkbox is already activated, display will default to including the mask
+        if self.showmask.get()>0.:
+            self.im = self.ax.imshow(self.dat,origin='lower',norm=norm_im)
+        else:
+            self.im = self.ax.imshow(self.dat_for_display,origin='lower',norm=norm_im)
+        
         self.ax.set_xlim(0,len(self.dat)-1)
         self.ax.set_ylim(0,len(self.dat)-1)
         
@@ -444,6 +493,11 @@ class MainPage(tk.Frame):
         filename = filedialog.askopenfilename(initialdir = self.initial_browsedir, title = "Select a File", filetypes = ([("FITS Files", ".fits")]))
         self.path_to_im.delete(0,tk.END)
         self.path_to_im.insert(0,filename) 
+        
+    def browseFilesMask(self):
+        filename_alt = filedialog.askopenfilename(initialdir = self.initial_browsedir, title = "Select a File", filetypes = ([("FITS Files", ".fits")]))
+        self.path_to_mask.delete(0,tk.END)
+        self.path_to_mask.insert(0,filename_alt)
     
     #create command function to print info popup message
     def popup(self):
