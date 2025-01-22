@@ -4,7 +4,7 @@
 
 This project set out to faciliate the conversion of FITS image data into sound and has culminated in a user-friendly GUI, developed in python. 
 
-Please visit this repository's wiki at https://github.com/Kyssuber/midichlorians/wiki/Getting-Started for specific setup instructions and details on the various interface features!
+Please visit this repository's wiki at https://github.com/gammaspire/midichlorians/wiki/Getting-Started for specific setup instructions and details on the various interface features!
 
 See the requirements.txt file to review the required packages & versions in order to successfully run the main script.
 
