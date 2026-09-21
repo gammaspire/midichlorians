@@ -21,8 +21,8 @@ from tkinter import messagebox
 from tkinter import filedialog
 import glob
 
-from rectangle_functions import rectangle
-from sono_functions import sono_defs
+from utils.rectangle_functions import rectangle
+from utils.sono_functions import sono_defs
 
 homedir = os.getenv('HOME')
       
@@ -896,13 +896,10 @@ class MainPage(tk.Frame):
         line, = self.ax.plot([], [], lw=1)
         
         self.l,v = self.ax.plot(self.xmin, self.ymin, self.xmax, self.ymax, lw=2, color='red')
-        len_of_song_ms = (self.length_of_file-self.duration)*(1e3) #milliseconds
+        len_of_song_ms = self.son_func.t_data_sec[-1] * 1.e3
         
-        #there are len(self.midi_data)-1 intervals per len_of_song_ms, so
-        nintervals = len(self.midi_data)-1
-        
-        #for the duration of each interval, ...
-        self.duration_interval = len_of_song_ms/nintervals   #milliseconds
+        #the duration of each strip interval
+        self.duration_interval = (self.son_func.t_data_sec[1] - self.son_func.t_data_sec[0]) * 1.e3
         
         #note...blitting removes the previous lines
         self.line_anim = animation.FuncAnimation(self.fig, self.update_line_gui, frames=len(self.t_data), 
@@ -915,9 +912,9 @@ class MainPage(tk.Frame):
 
         current_time_sec = current_pos / 1e3   #seconds
 
-        # Find the index corresponding to the current time
-        frame = min(int((current_time_sec / (self.length_of_file-self.duration)) * len(self.t_data)), len(self.t_data) - 1)
-
+        # Find the index corresponding to the current time. t_data_sec corresponds to the actual onset time.
+        frame = np.searchsorted(self.son_func.t_data_sec, current_time_sec, side='right') - 1
+        
         line_xdat, line_ydat = map(list, zip(*self.all_line_coords[frame]))
         line.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
         return line,

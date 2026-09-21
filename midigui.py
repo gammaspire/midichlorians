@@ -6,7 +6,7 @@ import os
 from tkinter import messagebox
 import glob
 
-from generate_app import MainPage
+from utils.generate_app import MainPage
 
 homedir = os.getenv('HOME')
 

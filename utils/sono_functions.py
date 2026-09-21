@@ -56,11 +56,13 @@ class sono_defs():
     def write_midifile(self, bpm, program, duration, midi_data, t_data, vel_data):
         
         self.midi_data = midi_data
-        self.t_data = t_data
         self.vel_data = vel_data
         self.bpm = bpm
         self.program = program
         self.duration = duration
+        
+        self.t_data = t_data
+        self.t_data_sec = self.t_data * (60.0 / self.bpm)
         
         #create midi file object, add tempo
         self.memfile = BytesIO()   #create working memory file (allows me to play the note without saving the file...yay!)
@@ -163,9 +165,9 @@ class sono_defs():
     def update_line_one(self,num,point1a,line2):
         
         xvals = self.xvals_anim
-        i = int(xvals[num])
+        i = int(round(xvals[num]))
         
-        point1a.set_data(self.t_data[i],self.midi_data[i])
+        point1a.set_data(self.t_data_sec[i],self.midi_data[i])
         line_xdat, line_ydat = map(list, zip(*self.all_line_coords[i]))
         line2.set_data([line_xdat[0], line_xdat[-1]], [line_ydat[0], line_ydat[-1]])
         
@@ -174,7 +176,7 @@ class sono_defs():
     
     def create_midi_animation(self, all_line_coords, ani_savename_unf, norm_im2, dat,
                              xmin, xmax, ymin, ymax, galaxy_name, band):
- 
+
         self.all_line_coords = all_line_coords
         
         while os.path.exists('{}{:d}.mp4'.format(ani_savename_unf, self.namecounter_ani)):
@@ -191,12 +193,12 @@ class sono_defs():
         l2,v = ax2.plot(xmin, ymin, xmax, ymax, lw=2, color='red')
 
         self.xmin_anim = 0
-        self.xmax_anim = np.max(self.t_data)
-        self.ymin_anim = int(np.min(self.midi_data))
+        self.xmax_anim = np.max(self.t_data_sec)
+        self.ymin_anim = int(round(np.min(self.midi_data)))
 
         self.xvals_anim = np.arange(0,len(self.midi_data),1)
         
-        ax1.scatter(self.t_data, self.midi_data, self.vel_data, alpha=0.5, edgecolors='black')
+        ax1.scatter(self.t_data_sec, self.midi_data, self.vel_data, alpha=0.5, edgecolors='black')
         
         #initialize point
         point1a, = ax1.plot([], [], 'ro', markersize=20, alpha=0.2)
@@ -208,8 +210,15 @@ class sono_defs():
         line_anim = animation.FuncAnimation(fig, self.update_line_one, frames=len(self.xvals_anim), fargs=(point1a,l2,), blit=True)
 
         FFWriter = animation.FFMpegWriter()
-        line_anim.save(ani_savename,fps=((len(self.xvals_anim))/self.time)+self.duration)
         
+        strip_interval = self.t_data_sec[1] - self.t_data_sec[0]
+
+        animation_duration = self.t_data_sec[-1] + strip_interval
+
+        fps = len(self.xvals_anim) / animation_duration
+
+        line_anim.save(ani_savename, fps=fps)
+                
         del fig     #I am finished with the figure, so I shall delete references to the figure.
         
         ani_both_savename_unf = ani_savename_unf+'concat'
