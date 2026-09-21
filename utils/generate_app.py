@@ -361,10 +361,10 @@ class MainPage(tk.Frame):
         self.angle_button = tk.Button(self.frame_box, text='Rotate',padx=5,pady=10,font=self.helv20,
                                       command=self.create_rectangle)
         self.angle_button.grid(row=2,column=1,columnspan=3)
-        self.incarrow = tk.Button(self.frame_box, text='+1',padx=1,pady=10,font='Ariel 14',
+        self.incarrow = tk.Button(self.frame_box, text='+5',padx=1,pady=10,font='Ariel 14',
                                   command=self.increment)
         self.incarrow.grid(row=2,column=4,columnspan=1)                          
-        self.decarrow = tk.Button(self.frame_box, text='-1',padx=1,pady=10,font='Ariel 14',
+        self.decarrow = tk.Button(self.frame_box, text='-5',padx=1,pady=10,font='Ariel 14',
                                   command=self.decrement)
         self.decarrow.grid(row=2,column=0,columnspan=1)
     
@@ -373,7 +373,7 @@ class MainPage(tk.Frame):
         #to prevent this 89.9 number from being inserted into the angle_box and then incremented/decremented, 
         #I'll just pull the self.angle float again.
         self.rec_func.angle = float(self.angle_box.get())
-        self.rec_func.angle += 1   #increment
+        self.rec_func.angle += 5   #increment
         self.angle_box.delete(0,tk.END)   #delete current textbox entry
         self.angle_box.insert(0,str(self.rec_func.angle))   #update entry with incremented angle
         
@@ -382,11 +382,30 @@ class MainPage(tk.Frame):
     
     def decrement(self):
         self.rec_func.angle = float(self.angle_box.get())
-        self.rec_func.angle -= 1   #decrement
+        self.rec_func.angle -= 5   #decrement
         self.angle_box.delete(0,tk.END)   #delete current textbox entry
         self.angle_box.insert(0,str(self.rec_func.angle))   #update entry with decremented angle        
         self.create_rectangle()
-        
+    
+    def stop_animation(self):
+
+        if hasattr(self, "line_anim"):
+            try:
+                self.line_anim.event_source.stop()
+            except:
+                pass
+            try:
+                self.line_anim._stop()
+            except:
+                pass
+            self.line_anim = None
+            
+        if hasattr(self, "l"):
+            try:
+                self.l.remove()
+            except:
+                pass
+    
     def initiate_canvas(self):
         
         #I need to add a try...except statement here, in case a user accidentally clicks "Load/Refresh" without loading a galaxy first. If they do so THEN try to successfully load a galaxy, the GUI will break.
@@ -398,6 +417,8 @@ class MainPage(tk.Frame):
             self.ax.remove()
         except:
             pass
+        
+        self.stop_animation()
         
         self.dat_for_display, self.dat_header = fits.getdata(str(self.path_to_im.get()), header=True)
         
@@ -543,10 +564,7 @@ class MainPage(tk.Frame):
             pass
         
         #remove animation bar, if applicable
-        try:
-            self.l.remove()
-        except:
-            pass
+        self.stop_animation()
         
         #if user clicks outside the image bounds, then problem-o.
         if event.inaxes:
@@ -665,10 +683,7 @@ class MainPage(tk.Frame):
     def drawSqRec(self, event):
         
         #remove animation line, if applicable
-        try:
-            self.l.remove()
-        except:
-            pass
+        self.stop_animation()
         
         #remove current bar, if applicable
         try:
@@ -741,10 +756,7 @@ class MainPage(tk.Frame):
     def midi_setup_bar(self):
         
         #remove animation bar, if applicable
-        try:
-            self.l.remove()
-        except:
-            pass
+        self.stop_animation()
         
         #define various quantities required for midi file generation
         self.y_scale = float(self.y_scale_entry.get())
